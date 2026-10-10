@@ -199,10 +199,18 @@ export class NoiseXX extends SymmetricState {
    * Noise's single DH entry point. ALL handshake DH operations go through here
    * so the low-order-point guard below cannot be bypassed by a new call site.
    *
-   * X25519 returns an all-zero shared secret whenever the peer's public key is a
-   * low-order point (including u=0 and u=1). Neither @noble/curves nor libsodium
-   * rejects those, so without this guard an attacker could force a known shared
-   * secret and predict the derived keys. See docs/security.md T16.
+   * X25519 yields an all-zero shared secret whenever the peer's public key is a
+   * low-order point (including u=0 and u=1). A peer that can force that knows the
+   * resulting keys, i.e. it can read the session. See docs/security.md T16.
+   *
+   * MEASURED ASYMMETRY, do not "simplify" this away: on Node, @noble/curves
+   * ALREADY rejects all seven canonical low-order points and throws
+   * `invalid private or public key received`, so this guard normally does not
+   * fire here. Dart's `cryptography` does NOT reject them — it silently returns
+   * 32 zero bytes — so the same guard in `noise_xx_blake2s.dart` is the only
+   * defence there. The check is kept on BOTH sides because the two runtimes
+   * depend on different libraries, and a library change on either side must not
+   * be able to silently remove the protection.
    *
    * Do NOT move this guard down into `suite.dh`: key generation uses the base
    * point (X25519(sk, 9)), and while that never yields all-zero for a valid
