@@ -1,0 +1,107 @@
+==============================================================
+1) npm (flat layout)
+==============================================================
+--- installer output (filtered) ---
+    
+    added 21 packages in 3s
+--- install-script / compile markers ---
+    (none - no build script was requested or run)
+--- probe (npm-flat) ---
+    {
+      "layout": "npm-flat",
+      "noiseHandshakeResolved": "$DIR/node_modules/noise-handshake/noise.js",
+      "sodiumNativeEntry": "$DIR/node_modules/sodium-native/index.js",
+      "dhWorks": true,
+      "sodiumKeyCount": 313,
+      "hasBlake2s": false,
+      "loadedNativeAddons": [
+        "$DIR/node_modules/sodium-native/prebuilds/linux-x64/sodium-native.node"
+      ],
+      "noiseHandshakeWorks": true,
+      "noiseProtocolName": "Noise_XX_25519_ChaChaPoly_BLAKE2b",
+      "noiseHandshakeHash": "0818d22a5679bf5cc348b3b11436b66e..."
+    }
+
+==============================================================
+2) pnpm (default isolated layout)
+==============================================================
+--- installer output (filtered) ---
+    [WARN] The following settings in the global config file ("/home/bruce/.config/pnpm/config.yaml") are not recognized by this version of pnpm and were ignored: "globalShims" (a pnpm v12 setting).
+    Packages: +21
+    +++++++++++++++++++++
+    Packages are cloned from the content-addressable store to the virtual store.
+      Content-addressable store is at: /home/bruce/.local/share/pnpm/store/v11
+      Virtual store is at:             node_modules/.pnpm
+    
+    dependencies:
+    + noise-handshake 4.2.0
+    
+    Done in 994ms using pnpm v11.28.5
+--- install-script / compile markers ---
+    (none - no build script was requested or run)
+--- probe (pnpm-isolated) ---
+    {
+      "layout": "pnpm-isolated",
+      "noiseHandshakeResolved": "$DIR/node_modules/.pnpm/noise-handshake@4.2.0_bare-events@2.9.2/node_modules/noise-handshake/noise.js",
+      "sodiumNativeEntry": "$DIR/node_modules/.pnpm/sodium-native@5.1.0_bare-events@2.9.2/node_modules/sodium-native/index.js",
+      "dhWorks": true,
+      "sodiumKeyCount": 313,
+      "hasBlake2s": false,
+      "loadedNativeAddons": [
+        "$DIR/node_modules/.pnpm/sodium-native@5.1.0_bare-events@2.9.2/node_modules/sodium-native/prebuilds/linux-x64/sodium-native.node"
+      ],
+      "noiseHandshakeWorks": true,
+      "noiseProtocolName": "Noise_XX_25519_ChaChaPoly_BLAKE2b",
+      "noiseHandshakeHash": "698c5bb067e6a62dedba9699ecd2b63e..."
+    }
+
+==============================================================
+3) pnpm (nodeLinker: hoisted)
+==============================================================
+    [WARN] The following settings in the global config file ("/home/bruce/.config/pnpm/config.yaml") are not recognized by this version of pnpm and were ignored: "globalShims" (a pnpm v12 setting).
+    Packages: +21
+    +++++++++++++++++++++
+    Packages are cloned from the content-addressable store to the virtual store.
+      Content-addressable store is at: /home/bruce/.local/share/pnpm/store/v11
+      Virtual store is at:             node_modules/.pnpm
+    
+    dependencies:
+    + noise-handshake 4.2.0
+    
+    Done in 938ms using pnpm v11.28.5
+--- install-script / compile markers ---
+    (none)
+--- probe (pnpm-hoisted) ---
+    {
+      "layout": "pnpm-hoisted",
+      "noiseHandshakeResolved": "$DIR/node_modules/.pnpm/noise-handshake@4.2.0_bare-events@2.9.2/node_modules/noise-handshake/noise.js",
+      "sodiumNativeEntry": "$DIR/node_modules/.pnpm/sodium-native@5.1.0_bare-events@2.9.2/node_modules/sodium-native/index.js",
+      "dhWorks": true,
+      "sodiumKeyCount": 313,
+      "hasBlake2s": false,
+      "loadedNativeAddons": [
+        "$DIR/node_modules/.pnpm/sodium-native@5.1.0_bare-events@2.9.2/node_modules/sodium-native/prebuilds/linux-x64/sodium-native.node"
+      ],
+      "noiseHandshakeWorks": true,
+      "noiseProtocolName": "Noise_XX_25519_ChaChaPoly_BLAKE2b",
+      "noiseHandshakeHash": "60a46800a4a395dde8040f317c9e577f..."
+    }
+
+==============================================================
+prebuilt binaries shipped inside the sodium-native 5.1.0 tarball
+==============================================================
+    sodium-native/prebuilds/android-arm64/sodium-native.node
+    sodium-native/prebuilds/android-arm/sodium-native.node
+    sodium-native/prebuilds/android-ia32/sodium-native.node
+    sodium-native/prebuilds/android-x64/sodium-native.node
+    sodium-native/prebuilds/darwin-arm64/sodium-native.node
+    sodium-native/prebuilds/darwin-x64/sodium-native.node
+    sodium-native/prebuilds/linux-arm64/sodium-native.node
+    sodium-native/prebuilds/linux-x64/sodium-native.node
+    sodium-native/prebuilds/win32-arm64/sodium-native.node
+    sodium-native/prebuilds/win32-x64/sodium-native.node
+    linux-x64 payload:
+        drwxr-xr-x  2 bruce bruce      58 10月10日 10:47 .
+        drwxr-xr-x 15 bruce bruce    4096 10月10日 10:47 ..
+        -rw-r--r--  1 bruce bruce 1067064 10月10日 10:47 sodium-native.bare
+        -rw-r--r--  1 bruce bruce  919464 10月10日 10:47 sodium-native.node

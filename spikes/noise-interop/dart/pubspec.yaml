@@ -1,0 +1,21 @@
+name: noise_interop_dart
+description: Noise_XX_25519_ChaChaPoly_BLAKE2s Dart side of the Node<->Dart interop spike.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  # X25519 + BLAKE2s + ChaCha20-Poly1305 (all pure Dart, no native toolchain)
+  cryptography: ^2.9.0
+  # SHA-256 for the SAS derivation
+  crypto: ^3.0.7
+  # Evaluated during the spike but NOT used for the handshake: 1.2.0 only
+  # implements NKpsk0/KNpsk0 (no XX) and hardcodes HKDF-SHA256. Kept declared so
+  # the report can state a resolved version.
+  noise_protocol_framework: ^1.2.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

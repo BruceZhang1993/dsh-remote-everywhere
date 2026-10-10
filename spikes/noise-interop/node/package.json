@@ -1,0 +1,23 @@
+{
+  "name": "noise-interop-node",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Noise_XX_25519_ChaChaPoly_BLAKE2s interop spike - Node side",
+  "scripts": {
+    "vectors": "node src/emit-vectors.js",
+    "validate": "node src/validate-vs-noise-handshake.js",
+    "selftest": "node src/selftest.js",
+    "interop:server": "node src/tcp-interop.js server",
+    "interop:client": "node src/tcp-interop.js client"
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0"
+  },
+  "devDependencies": {
+    "noise-curve-ed": "2.1.0",
+    "noise-handshake": "4.2.0"
+  }
+}

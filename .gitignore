@@ -1,0 +1,52 @@
+# --- Node / JS ---
+node_modules/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# --- Build output ---
+dist/
+build/
+*.tsbuildinfo
+
+# --- Flutter / Dart ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/android/.gradle/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/ephemeral/
+*.iml
+
+# --- Spike artifacts: keep scripts, REPORT.md and frozen lockfiles; drop heavy/generated output ---
+# cloudflared binaries are ~20-53 MB each; re-download per platform rather than commit.
+spikes/tunnel/cloudflared
+spikes/tunnel/cloudflared-*
+spikes/*/logs/
+spikes/flutter-android/t_app/build/
+spikes/flutter-android/t_app/.dart_tool/
+spikes/noise-interop/node/node_modules/
+spikes/noise-interop/dart/.dart_tool/
+# NOTE: pubspec.lock / package-lock.json are deliberately NOT ignored — the M0 spikes pin
+# cryptography 2.9.0 exactly because its crypto behaviour is version-specific.
+
+# --- Secrets: never commit device keys or paired device tables ---
+*.key
+*.pem
+device-keys.json
+devices.json
+.cache/
+
+# --- Editor / OS ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
