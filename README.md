@@ -57,7 +57,9 @@ early environment research was partly wrong and the corrections matter for anyon
 - **Controller** — another DSH instance. Its agent gets native MCP tools (`remote_*`) plus a bundled
   skill, so "connect to my desktop and check the build" is a normal tool call.
 - **Mobile** — a Flutter app that speaks the same protocol. Pairing is a QR code plus a
-  human-compared 6-digit short authentication string.
+  human-compared 6-digit short authentication string. **The mobile app is controller-only**: a
+  phone can drive a DSH instance, but a phone can never be *controlled*. See
+  [docs/security.md](docs/security.md) §5.4 for why.
 
 ## Safety posture
 

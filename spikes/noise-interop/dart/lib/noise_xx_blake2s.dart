@@ -129,6 +129,17 @@ List<Uint8List> hkdf(List<int> chainingKey, List<int> ikm, int numOutputs) {
 // X25519
 // ---------------------------------------------------------------------------
 
+/// X25519 DH for Noise, with a mandatory low-order-point guard.
+///
+/// `DartX25519` does NOT reject low-order public keys: all seven canonical
+/// low-order u-coordinates (u=0, u=1, the two order-8 points, p-1, p, p+1)
+/// silently return 32 zero bytes instead of throwing. An attacker who supplies
+/// such a point as an ephemeral or static key would force a known shared secret
+/// and could predict the derived keys. Every handshake DH goes through this
+/// function so the check cannot be bypassed. See docs/security.md T16.
+///
+/// The guard is safe for key generation (`publicKeyFromSecret` below uses the
+/// base point u=9): measured, that product is never all-zero for a valid secret.
 Uint8List dh(List<int> secretKey, List<int> remotePublicKey) {
   if (secretKey.length != kDhLen) throw ArgumentError('bad X25519 secret key');
   if (remotePublicKey.length != kDhLen) throw ArgumentError('bad X25519 public key');
@@ -150,7 +161,13 @@ Uint8List dh(List<int> secretKey, List<int> remotePublicKey) {
   if (shared is! SecretKeyData) {
     throw StateError('unexpected SecretKey implementation: ${shared.runtimeType}');
   }
-  return Uint8List.fromList(shared.bytes);
+  final out = Uint8List.fromList(shared.bytes);
+  if (out.every((byte) => byte == 0)) {
+    throw StateError(
+      'Noise: X25519 low-order point rejected (all-zero shared secret)',
+    );
+  }
+  return out;
 }
 
 /// X25519 public key from a 32-byte secret: X25519(sk, 9), which is the RFC 7748

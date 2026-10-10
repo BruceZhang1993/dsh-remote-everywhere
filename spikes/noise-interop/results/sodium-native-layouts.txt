@@ -19,7 +19,7 @@
       ],
       "noiseHandshakeWorks": true,
       "noiseProtocolName": "Noise_XX_25519_ChaChaPoly_BLAKE2b",
-      "noiseHandshakeHash": "0818d22a5679bf5cc348b3b11436b66e..."
+      "noiseHandshakeHash": "b5931080286747706b2a3aaa2b79da61..."
     }
 
 ==============================================================
@@ -36,7 +36,7 @@
     dependencies:
     + noise-handshake 4.2.0
     
-    Done in 994ms using pnpm v11.28.5
+    Done in 937ms using pnpm v11.28.5
 --- install-script / compile markers ---
     (none - no build script was requested or run)
 --- probe (pnpm-isolated) ---
@@ -52,7 +52,7 @@
       ],
       "noiseHandshakeWorks": true,
       "noiseProtocolName": "Noise_XX_25519_ChaChaPoly_BLAKE2b",
-      "noiseHandshakeHash": "698c5bb067e6a62dedba9699ecd2b63e..."
+      "noiseHandshakeHash": "c349ba6cc5a5304f72889b29b6104002..."
     }
 
 ==============================================================
@@ -68,7 +68,7 @@
     dependencies:
     + noise-handshake 4.2.0
     
-    Done in 938ms using pnpm v11.28.5
+    Done in 875ms using pnpm v11.28.5
 --- install-script / compile markers ---
     (none)
 --- probe (pnpm-hoisted) ---
@@ -84,7 +84,7 @@
       ],
       "noiseHandshakeWorks": true,
       "noiseProtocolName": "Noise_XX_25519_ChaChaPoly_BLAKE2b",
-      "noiseHandshakeHash": "60a46800a4a395dde8040f317c9e577f..."
+      "noiseHandshakeHash": "37acde5de6209c75039379be24eb5f69..."
     }
 
 ==============================================================
@@ -101,7 +101,7 @@ prebuilt binaries shipped inside the sodium-native 5.1.0 tarball
     sodium-native/prebuilds/win32-arm64/sodium-native.node
     sodium-native/prebuilds/win32-x64/sodium-native.node
     linux-x64 payload:
-        drwxr-xr-x  2 bruce bruce      58 10月10日 10:47 .
-        drwxr-xr-x 15 bruce bruce    4096 10月10日 10:47 ..
-        -rw-r--r--  1 bruce bruce 1067064 10月10日 10:47 sodium-native.bare
-        -rw-r--r--  1 bruce bruce  919464 10月10日 10:47 sodium-native.node
+        drwxr-xr-x  2 bruce bruce      58 10月10日 11:17 .
+        drwxr-xr-x 15 bruce bruce    4096 10月10日 11:17 ..
+        -rw-r--r--  1 bruce bruce 1067064 10月10日 11:17 sodium-native.bare
+        -rw-r--r--  1 bruce bruce  919464 10月10日 11:17 sodium-native.node

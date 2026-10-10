@@ -195,8 +195,28 @@ export class NoiseXX extends SymmetricState {
     return this.suite.generateKeyPair()
   }
 
+  /**
+   * Noise's single DH entry point. ALL handshake DH operations go through here
+   * so the low-order-point guard below cannot be bypassed by a new call site.
+   *
+   * X25519 returns an all-zero shared secret whenever the peer's public key is a
+   * low-order point (including u=0 and u=1). Neither @noble/curves nor libsodium
+   * rejects those, so without this guard an attacker could force a known shared
+   * secret and predict the derived keys. See docs/security.md T16.
+   *
+   * Do NOT move this guard down into `suite.dh`: key generation uses the base
+   * point (X25519(sk, 9)), and while that never yields all-zero for a valid
+   * secret, keeping keygen and handshake DH on separate paths avoids coupling
+   * the two behaviours.
+   */
   _dh (publicKey, keyPair) {
-    return this.suite.dh(publicKey, keyPair)
+    const shared = this.suite.dh(publicKey, keyPair)
+    if (shared.every((byte) => byte === 0)) {
+      throw new Error(
+        'Noise: X25519 low-order point rejected (all-zero shared secret)',
+      )
+    }
+    return shared
   }
 
   _finish () {

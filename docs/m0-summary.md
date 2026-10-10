@@ -40,19 +40,43 @@
 
 ## 3. 因 M0 而发生的架构修正
 
-| # | 修正 | 影响范围 |
+| # | 修正 | 影响范围 | 收口状态 |
+|---|---|---|---|
+| A1 | **两端自实现 Noise XX 状态机**（Node ~230 行 / Dart ~330 行），原语用成熟库 | TD-4、`packages/core` | 已验证（向量 94 + TCP 3/3 + oracle 26/26） |
+| A2 | **X25519 低阶点守卫** | security.md T16、`packages/core` 的 DH 封装 | ✅ **已实现并验证**（见 §3.1） |
+| A3 | **自实现 HMAC-BLAKE2s（B=64）**，禁用 `Hmac.blake2s()`/`Hkdf(Hmac.blake2s())` | security.md T17、TD-8 | 已实现，对 OpenSSL 逐字节验证 |
+| A4 | **改用应用层心跳**（HTTP/2 CONNECT 下 WebSocket 控制帧不透传，实测 `ws-pings=0`） | protocol.md §5.2 | 参数已定（25 s） |
+| A5 | **握手预算 ≤10 s**、重连指数退避 | protocol.md §5.3 | 参数已定 |
+| A6 | **客户端并发流上限 32**，服务端超限返回 `busy`，429 与 530 分开显示 | protocol.md §5.4、security.md T12b | 参数已定 |
+| A7 | **就绪探测通过前不展示隧道 URL**（冷启动窗口 10–25% 失败） | security.md T12c、TD-5 | 流程已定 |
+| A8 | **隧道 URL 作为一次性会话数据**（cloudflared 重启后旧 URL 永久 530/1033） | TD-5、architecture.md D4 | 已确定 |
+| A9 | **保留 BLAKE2s 而非改 BLAKE2b**（Blake2b 有同类 bug，Dart 侧仍须自实现 HMAC） | TD-4a | 已决策并记录依据 |
+| A10 | **cloudflared 必须按进程组清理**（只 kill 直接 PID 会遗留流排空辅助进程） | 实现注意项 | 已记录 |
+| A11 | `packages/core` 的测试必须能在纯 Dart VM 下跑（不得 import `flutter_test`） | TD-8、TD-11 | 已记录 |
+| **A12** | **手机只做控制端**（协议在 `hello` 强制 `role`，被控端拒绝 mobile 作为被控） | security.md T18、protocol.md §4.2、architecture.md §3.1 | 已决策并写入协议 |
+
+### 3.1 A2 的收口细节（值得单独记录）
+
+补齐守卫时发现一个**两侧不对称**，这本身就是需要长期防御的风险：
+
+| 端 | 库行为 | 我们的守卫 |
 |---|---|---|
-| A1 | **两端自实现 Noise XX 状态机**（Node ~230 行 / Dart ~330 行），原语用成熟库 | TD-4、`packages/core` |
-| A2 | **强制 X25519 全零共享密钥守卫**（`DartX25519` 与 `@noble` 都不拒绝低阶点，7 个标准低阶 u 坐标静默返回 32 零字节） | security.md T16、`packages/core` 的 DH 封装 |
-| A3 | **自实现 HMAC-BLAKE2s（B=64）**，禁用 `Hmac.blake2s()`/`Hkdf(Hmac.blake2s())`（非 RFC 2104，会静默产出错误 tag） | security.md T17、TD-8 |
-| A4 | **改用应用层心跳**（HTTP/2 CONNECT 下 WebSocket 控制帧不透传，实测 `ws-pings=0`） | protocol.md §5.2 |
-| A5 | **握手预算 ≤10 s**、重连指数退避 | protocol.md §5.3 |
-| A6 | **客户端并发流上限 32**，服务端超限返回 `busy`，429 与 530 分开显示 | protocol.md §5.4、security.md T12b |
-| A7 | **就绪探测通过前不展示隧道 URL**（冷启动窗口 10–25% 失败） | security.md T12c、TD-5 |
-| A8 | **隧道 URL 作为一次性会话数据**（cloudflared 重启后旧 URL 永久 530/1033，实测 7 个不同主机名） | TD-5、architecture.md D4 |
-| A9 | **保留 BLAKE2s 而非改 BLAKE2b**（改用 BLAKE2b 并不能免掉 Dart 侧自实现 HMAC，且会让已验证工作作废） | TD-4a |
-| A10 | **cloudflared 必须按进程组清理**（只 kill 直接 PID 会遗留流排空辅助进程） | 实现注意项 |
-| A11 | `packages/core` 的测试必须能在纯 Dart VM 下跑（不得 import `flutter_test`） | TD-8、TD-11 |
+| Node（`@noble/curves`） | **本来就拒绝低阶点**，抛 `invalid private or public key received` | 仍保留，作为对库退化的防御；实际不会被执行 |
+| Dart（`cryptography`） | **完全不拒绝**，静默返回 32 个零字节 | **唯一防线** |
+
+含义：这条负向测试**必须在两侧都跑**。若只在一侧实现，另一侧可能因为换库而静默失去防护。
+由于两侧错误来源与措辞都不同，跨语言一致性测试必须断言**"握手被中止"**，而不是断言具体消息。
+
+收口验证（`spikes/noise-interop/scripts/run-all.sh`，全绿）：
+
+| 步骤 | 结果 |
+|---|---|
+| Node 自测（含 7 低阶点 + 线路层伪造临时公钥） | ✅ |
+| Dart 自测 JIT / AOT（各 31 项，含 7 低阶点 + 线路层攻击） | ✅ ✅ |
+| Node driver vs `noise-handshake` oracle | ✅ |
+| Dart 逐字节验证 Node 向量 | ✅ 94/94 |
+| 真实 TCP Node↔Dart 握手（双向角色 + 负向） | ✅ 3/3 |
+| 总计 | **ALL SPIKE STEPS PASSED** |
 
 ---
 
@@ -81,8 +105,9 @@ M0 的代码不是丢弃型原型，以下产物应当直接提升进 M1 的正�
 
 - [x] 三个技术不确定项全部有确定结论（构建、隧道、密码学互操作）
 - [x] 密码学依赖在目标运行时（Dart 3.13.5 / Android）与目标宿主形态（Electron）下均已验证
-- [x] 安全强制项已识别并写入文档（T16 全零守卫、T17 表征测试）
-- [x] 协议草案定稿到可实现粒度（帧格式、方法表、流语义、重连参数、并发上限）
+- [x] **安全强制项已落地而非仅记录**：T16（低阶点守卫）已在两端实现并通过回归测试；
+  T17（HMAC 自实现 + 表征测试）已落地；T18（手机只做控制端）已写入协议
+- [x] 协议草案定稿到可实现粒度（帧格式、方法表、流语义、重连参数、并发上限、角色模型）
 - [x] 环境与复现流程已文档化（`development.md`）
 - [ ] 把 M0 产出物提升为 `packages/{protocol,core,tunnel}` 的初始代码
 - [ ] 建立仓库级检查：`packages/{protocol,core,tunnel}` 不得 import `@deepseek-ai/*`

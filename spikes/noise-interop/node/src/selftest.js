@@ -5,7 +5,7 @@
 
 import { x25519 } from '@noble/curves/ed25519.js'
 
-import { toHex, utf8, equalBytes } from './bytes.js'
+import { toHex, utf8, equalBytes, fromHex } from './bytes.js'
 import { NoiseXX, deriveSas, prologueForSession } from './noise-xx.js'
 import { BLAKE2S, sha256 } from './primitives.js'
 
@@ -106,7 +106,59 @@ expectThrow('tampered handshake msg2 rejected by the initiator', () => {
 }, /invalid|tag|auth|decrypt/i)
 
 // ---------------------------------------------------------------------------
-console.log('\n[3] replay / freshness')
+console.log('\n[3] X25519 low-order point rejection (security.md T16)')
+
+// The seven canonical low-order u-coordinates. NOTE: on Node, `@noble/curves`
+// ALREADY rejects these and throws `invalid private or public key received`
+// before our guard runs — verified, not assumed. Dart's `cryptography` does NOT
+// reject them (it silently returns 32 zero bytes), which is why the guard is
+// load-bearing on the Dart side. The contract asserted here is identical on both
+// sides: a low-order peer key MUST abort the handshake.
+const LOW_ORDER_U = [
+  '0000000000000000000000000000000000000000000000000000000000000000', // u = 0
+  '0100000000000000000000000000000000000000000000000000000000000000', // u = 1
+  'e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800', // order 8
+  '5f9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f1157', // order 8
+  'ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f', // p-1
+  'edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f', // p
+  'eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f' // p+1
+]
+const LOW_ORDER_REJECTION = /low-order|invalid private or public key/i
+const probe = new NoiseXX({
+  initiator: true,
+  staticKeyPair: keypair(3, 1),
+  suite: BLAKE2S,
+  prologue: prologueForSession('loworder-probe')
+})
+for (const hex of LOW_ORDER_U) {
+  const u = fromHex(hex)
+  expectThrow(`_dh rejects low-order u=${hex.slice(0, 8)}…`,
+    () => probe._dh(u, keypair(5, 2)), LOW_ORDER_REJECTION)
+}
+check('_dh still accepts the base point (keygen path unaffected)',
+  probe._dh(fromHex('09' + '00'.repeat(31)), keypair(7, 3)).length === 32)
+
+// Wire-level attack: a hostile responder returns a low-order ephemeral in
+// message 2, so the initiator derives DH(e_i, re) with a low-order re. Without
+// this rejection the initiator would continue into a handshake whose keys the
+// attacker already knows.
+{
+  const victim = new NoiseXX({
+    initiator: true,
+    staticKeyPair: iStatic,
+    suite: BLAKE2S,
+    prologue: prologueForSession('loworder-attack'),
+    ephemeralKeyPair: keypair(41, 5)
+  })
+  const m1 = victim.writeMessage(utf8(''))
+  const forged = new Uint8Array(32 + m1.length + 64)
+  forged.set(fromHex(LOW_ORDER_U[1]), 0) // inject u = 1 as the peer ephemeral
+  expectThrow('initiator aborts when the peer sends a low-order ephemeral',
+    () => victim.readMessage(forged), LOW_ORDER_REJECTION)
+}
+
+// ---------------------------------------------------------------------------
+console.log('\n[4] replay / freshness')
 const a = handshake({ sid: 'replay-sid-XYZ', iStatic, rStatic, iEph: keypair(19, 7), rEph: keypair(23, 9) })
 const b = handshake({ sid: 'replay-sid-XYZ', iStatic, rStatic, iEph: keypair(29, 11), rEph: keypair(31, 13) })
 const sasA = deriveSas(a.init.handshakeHash, iStatic.publicKey, rStatic.publicKey, sha256)
@@ -140,7 +192,7 @@ check('same session id + same ephemerals -> identical SAS (the replay the SAS is
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n[4] prologue / session-id binding')
+console.log('\n[5] prologue / session-id binding')
 {
   const i = new NoiseXX({ initiator: true, staticKeyPair: iStatic, suite: BLAKE2S, prologue: prologueForSession('sid-AAA'), ephemeralKeyPair: keypair(19, 7) })
   const r = new NoiseXX({ initiator: false, staticKeyPair: rStatic, suite: BLAKE2S, prologue: prologueForSession('sid-BBB'), ephemeralKeyPair: keypair(23, 9) })
@@ -184,7 +236,7 @@ console.log('\n[4] prologue / session-id binding')
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n[5] performance sanity (Node / @noble pure JS)')
+console.log('\n[6] performance sanity (Node / @noble pure JS)')
 const N = 500
 const iEph = keypair(19, 7)
 const rEph = keypair(23, 9)

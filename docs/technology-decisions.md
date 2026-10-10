@@ -400,7 +400,7 @@ HTTP 路由时的备选。
 | # | 问题 | 缓解 |
 |---|---|---|
 | 1 | `Hmac.blake2s()` **不是 RFC 2104 HMAC**：`Blake2s.blockLengthInBytes` 返回 32（真实 64），DartHmac 用它作为 ipad/opad 的补长。实测 HMAC-BLAKE2s("secret","abc")：OpenSSL = `38441ee1…`，本包 = `773a1d7d…`；HKDF 同样错。危险在于**自测自洽**：与自己的实现互通，与第三方实现静默不通 | 自实现 HMAC-BLAKE2s（`B = 64`），已对 OpenSSL 在 key 长度 6/32/100（含 >64 需先哈希的分支）下逐字节验证；并把错误值写成**表征测试**，依赖升级时立即变红 |
-| 2 | `DartX25519` **不拒绝低阶点**：7 个标准低阶 u 坐标全部静默返回 32 个零字节 | 每次 DH 后强制全零检查并中止握手（统一封装，不允许调用点绕过）——详见 [security.md](security.md) §4.1 |
+| 2 | `DartX25519` **不拒绝低阶点**：7 个标准低阶 u 坐标全部静默返回 32 个零字节 | ✅ **已实现**：Noise 的唯一 DH 入口强制全零检查并中止握手；两侧 7 个低阶点 + 线路层伪造测试全过。**注意不对称**：Node 的 `@noble/curves` 本来就会拒绝，Dart 的 `cryptography` 完全不拒绝 → 负向测试必须两侧都跑 —— 详见 [security.md](security.md) §4.1 |
 
 **否决**：`flutter_webrtc` —— 重量级原生二进制、无纯 Dart 回退、iOS 侧无法本机验证；对
 加密控制通道而言普通 WebSocket 更合适。仅在将来需要媒体或 P2P 打洞时再考虑。

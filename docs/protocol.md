@@ -137,7 +137,29 @@ SAS 字符串      = 十进制、左补零至 6 位
 | Prologue | `"dsh-remote/v1/pair:" + sid`（配对）；`"dsh-remote/v1/resume:" + deviceId`（重连） |
 | 消息数 | XX 模式标准 3 条消息 |
 
-### 4.1 XX 模式的消息序列（规范原文）
+### 4.1 角色模型与"手机只做控制端"约束
+
+| `role` | 含义 | 谁可以使用 |
+|---|---|---|
+| `controller` | 发起方，驱动被控端的会话 | DSH 实例、移动端 App |
+| `controlled` | 被控方，暴露自身会话 | **仅 DSH 实例** |
+
+**产品决策（2026-10-10）：移动端只做控制端。** 因此：
+
+- 被控端在 `hello` 阶段**必须**校验对端声明：`role === "controller"`。任何声明
+  `role: "controlled"` 或缺失 `role` 的对端一律以 `unauthorized` 拒绝并断开。
+- `kind` 字段用于区分客户端类别。被控端**不得**因为 `kind: "mobile"` 而放宽任何权限；
+  `kind` 只用于审计与策略展示。
+- DSH 实例之间的互连**不受**此限制：一个 DSH 实例既可以做控制端也可以做被控端，由部署配置
+  决定；本条只约束移动端。
+- 该拒绝必须写入审计（`deviceId`、声明的角色、时间、原因）。
+
+设计说明：真正的边界是"移动端分发渠道不提供被控端能力"，服务端的 `role` 检查是**纵深防御的
+第二层**，用于拒绝被篡改的客户端，而不是唯一的防线。
+
+---
+
+### 4.2 XX 模式的消息序列（规范原文）
 
 [Noise 规范 §7.5 / §8](https://noiseprotocol.org/noise.html) 定义的 XX 模式：
 
@@ -167,7 +189,7 @@ XX:
    消息的密文长度包含公钥长度（32 字节 + 16 字节 AEAD tag）。实现分帧时必须按 Noise 消息
    边界，而不是按固定长度猜测。
 
-### 4.2 握手哈希与 SAS 的取值时机
+### 4.3 握手哈希与 SAS 的取值时机
 
 规范明确要求统计绑定值必须在 **`Split()` 之后**通过 `GetHandshakeHash()` 取得：
 
@@ -187,7 +209,8 @@ XX:
   "v": 1,                     // 协议主版本
   "vmin": 1, "vmax": 1,       // 支持的版本区间
   "caps": ["session","stream","files","terminal","approval"],
-  "role": "controller" | "controlled",
+  "role": "controller",       // 见 §4.1
+  "kind": "mobile" | "dsh",   // 客户端类别，用于角色策略判定
   "deviceId": "<长期公钥指纹 base64url>",
   "name": "Pixel 9"
 }
@@ -195,7 +218,24 @@ XX:
 
 双方取版本交集与能力交集；交集为空则关闭连接。**协商失败不得降级到弱安全配置。**
 
----
+握手完成后进入**传输阶段**。
+
+**版本与能力协商**：握手完成后，双方各发一条内层控制帧：
+
+```jsonc
+// kind: "hello"
+{
+  "v": 1,                     // 协议主版本
+  "vmin": 1, "vmax": 1,       // 支持的版本区间
+  "caps": ["session","stream","files","terminal","approval"],
+  "role": "controller",       // 见 §4.1
+  "kind": "mobile" | "dsh",   // 客户端类别，用于角色策略判定
+  "deviceId": "<长期公钥指纹 base64url>",
+  "name": "Pixel 9"
+}
+```
+
+双方取版本交集与能力交集；交集为空则关闭连接。**协商失败不得降级到弱安全配置。**
 
 ## 5. 帧格式
 
@@ -277,7 +317,7 @@ Noise 的 `CipherState` 只有一个 64 bit 计数器，而双工连接需要两
 
 | 方法 | 方向 | 参数 | 返回 |
 |---|---|---|---|
-| `hello` | 双向 | `{v, vmin, vmax, caps, role, deviceId, name}` | `{v, caps, role, deviceId}` |
+| `hello` | 双向 | `{v, vmin, vmax, caps, role, kind, deviceId, name}` | `{v, caps, role, deviceId}` |
 | `ping` | 双向 | `{}` | `{}` |
 | `device.list` | → 被控端 | `{}` | `{devices: [{deviceId, name, caps, pairedAt, lastSeenAt, online}]}` |
 | `device.revoke` | → 被控端 | `{deviceId}` | `{revoked: true}` |
@@ -488,7 +528,7 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 
 ---
 
-## 10. 待 M0-3 确认的开放项
+## 10. 开放项（M0 后更新）
 
 | # | 开放项 | 影响 | 状态 |
 |---|---|---|---|

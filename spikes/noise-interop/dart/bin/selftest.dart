@@ -177,7 +177,54 @@ Future<void> main() async {
   }
 
   // -------------------------------------------------------------------------
-  section('[3] replay / freshness');
+  section('[3] X25519 low-order point rejection (security.md T16)');
+
+  // The seven canonical low-order u-coordinates. `DartX25519` silently returns
+  // 32 zero bytes for every one of them, so the guard in `dh()` is the only
+  // thing standing between a hostile peer and a known shared secret.
+  const lowOrderU = <String>[
+    '0000000000000000000000000000000000000000000000000000000000000000', // u = 0
+    '0100000000000000000000000000000000000000000000000000000000000000', // u = 1
+    'e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800', // order 8
+    '5f9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f1157', // order 8
+    'ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f', // p-1
+    'edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f', // p
+    'eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f', // p+1
+  ];
+  for (final hex in lowOrderU) {
+    final u = fromHex(hex);
+    expectThrows('dh() rejects low-order u=${hex.substring(0, 8)}…',
+        () => dh(randKey(), u));
+  }
+  check('dh() still accepts the base point (keygen path unaffected)',
+      dh(randKey(), fromHex('0900000000000000000000000000000000000000000000000000000000000000'))
+              .length ==
+          32);
+
+  // Wire-level attack: a hostile responder returns a low-order ephemeral in
+  // message 2, so the initiator derives DH(e_i, re) with a low-order re.
+  // Without the guard the initiator would continue into a handshake whose keys
+  // the attacker knows.
+  {
+    final attackSid = 'loworder-attack-sid';
+    final i = NoiseXX(
+      initiator: true,
+      staticSecretKey: iStatic.sk,
+      staticPublicKey: iStatic.pk,
+      prologue: prologueForSession(attackSid),
+      ephemeralSecretKey: randKey(),
+    );
+    final m1 = i.writeMessage(Uint8List(0));
+    // msg2 layout: e_r(32) || EncryptAndHash(second token, …). The exact tail is
+    // irrelevant — the guard must fire while processing the ephemeral.
+    final msg2 = Uint8List(32 + m1.length + 64);
+    msg2.setRange(0, 32, fromHex(lowOrderU[1])); // inject u = 1
+    expectThrows('initiator aborts when the peer sends a low-order ephemeral',
+        () => i.readMessage(msg2));
+  }
+
+  // -------------------------------------------------------------------------
+  section('[4] replay / freshness');
   final a = handshake(iStatic: iStatic, rStatic: rStatic, sid: 'replay-sid-XYZ', iEph: randKey(), rEph: randKey());
   final b = handshake(iStatic: iStatic, rStatic: rStatic, sid: 'replay-sid-XYZ', iEph: randKey(), rEph: randKey());
   final sasA = deriveSas(a.init.handshakeHash!, iStatic.pk, rStatic.pk);
@@ -194,7 +241,7 @@ Future<void> main() async {
           deriveSas(d.init.handshakeHash!, iStatic.pk, rStatic.pk));
 
   // -------------------------------------------------------------------------
-  section('[4] prologue / session-id binding');
+  section('[5] prologue / session-id binding');
   {
     final i = NoiseXX(
       initiator: true,
@@ -235,7 +282,7 @@ Future<void> main() async {
   }
 
   // -------------------------------------------------------------------------
-  section('[5] performance sanity (Dart / pure Dart, AOT-less `dart run`)');
+  section('[6] performance sanity (Dart / pure Dart, AOT-less `dart run`)');
   const n = 200;
   for (var k = 0; k < 10; k++) {
     handshake(iStatic: iStatic, rStatic: rStatic, sid: 'perf', iEph: iEph, rEph: rEph);

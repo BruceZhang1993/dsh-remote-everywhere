@@ -5,6 +5,46 @@
 
 ---
 
+## 2026-10-10 — M0 已发现问题全部收口（未发布）
+
+M0 的四个 spike 不只给出结论，还暴露出若干"文档写了但实现没有"的缺口。本阶段把它们**落地为
+代码与测试**，而不是停留在文档里。
+
+### 收口项
+
+| # | 问题 | 收口方式 | 验证 |
+|---|---|---|---|
+| 1 | **X25519 低阶点攻击无防护（T16）** | 在 Noise 的**唯一 DH 入口**加全零检查：Node `NoiseXX._dh`、Dart `dh()`。守卫刻意**不下沉**到密钥生成函数（`publicKeyFromSecret` 用基点 `u=9`，已实测不会全零） | 两侧 7 个标准低阶点 + **线路层伪造低阶临时公钥**均被中止；Dart JIT/AOT 各 31 项、Node 自测全过 |
+| 2 | **`ignorable` 语义只在文档里** | 协议 §9.1 明确为强制分支：未知 `type` 且无 `ignorable: true` 时必须**拒绝重建会话** | 文档已定稿；实现检查列入 M1 |
+| 3 | **手机角色未定，协议 `role` 悬空** | 产品决策：**手机只做控制端**。协议 §4.2 定义 `role`/`kind`，被控端在 `hello` 阶段强制校验并拒绝非法角色，拒绝须审计 | 写入 protocol.md §4.2、security.md §5.4（T18）、architecture.md §3.1 |
+| 4 | **低阶点防护的两侧不对称未被发现** | 实测发现 Node 的 `@noble/curves` **本来就会拒绝**（抛 `invalid private or public key received`），而 Dart 的 `cryptography` **完全不拒绝**。记录为对等性风险：负向测试必须两侧都跑，且断言"握手被中止"而非具体错误消息 | 两侧错误类型不同已被测试固化 |
+
+### 收口后的完整回归（`spikes/noise-interop/scripts/run-all.sh`）
+
+```
+1/9 npm install                 OK
+2/9 dart pub get                OK
+3/9 Node self-tests             ALL SELFTESTS PASSED
+4/9 Dart self-tests (JIT)       ALL 31 SELFTESTS PASSED
+4b   Dart self-tests (AOT)      ALL 31 SELFTESTS PASSED
+5/9 Node vs noise-handshake     ALL CHECKS PASSED
+6/9 emit vectors                OK
+7/9 Dart verifies vectors       ALL 94 CHECKS PASSED
+8/9 live TCP Node <-> Dart      PASS / PASS / PASS
+9/9 sodium-native layout probe  OK
+=> ALL SPIKE STEPS PASSED
+```
+
+**结论**：安全强制项已从"识别"推进到"实现并验证"，且新增守卫未破坏任何既有验证
+（向量 94 项、oracle 对照、真实 TCP 互操作 3/3 全部保持通过）。
+
+### 仍未收口（需要 M1 实现时落地，非文档缺口）
+
+- 帧层、流控、重连状态机的实现尚不存在（M1 范围）
+- `ignorable` 强制分支、并发流上限、就绪探测、进程组清理等实现检查项（M1/M2 范围）
+
+---
+
 ## 2026-10-10 — M0 风险验证：四个 spike 全部通过（未发布）
 
 ### M0 验证结果

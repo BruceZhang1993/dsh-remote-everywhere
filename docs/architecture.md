@@ -138,6 +138,23 @@ ctx.on('approval/request', async (req, next) => {
 | C13 | 工作区切换 | ✅ | `workspace.list` / `session.create { cwd }` | |
 | C14 | 会话历史分页 / 代码 diff | ✅ | `history.page` / `history.throughSeq` | 复用 `loadOlder`/`loadThrough` 语义 |
 
+### 3.1 角色约束：手机只做控制端
+
+**产品决策（2026-10-10）**：移动端 App **只做控制端**，被控端仅限 DSH 实例。
+
+| 对端 | 可做控制端 | 可做被控端 |
+|---|---|---|
+| DSH 实例 | ✅ | ✅（由部署配置决定） |
+| 移动端 App（Android/iOS） | ✅ | ❌ **禁止** |
+
+理由与强制方式见 [security.md](security.md) §5.4（T18）：手机丢失的风险特征与桌面机不同，
+一部失窃手机不应等于交出桌面会话。协议在 `hello` 阶段校验 `role`，被控端拒绝声明为
+`controlled` 的对端（[protocol.md](protocol.md) §4.2）。
+
+对架构的影响：`packages/dsh-plugin` 的 host half 同时实现两种角色；移动端只实现 controller
+侧，因此 Dart 代码库**不需要**实现设备表、审批代理、文件写入围栏等服务端能力 —— 这实质减少了
+M3 的工作面与攻击面。
+
 ---
 
 ## 4. 关键架构决策及理由
