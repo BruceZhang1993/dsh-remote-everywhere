@@ -1,0 +1,11 @@
+{
+  "name": "@dsh-remote/cli",
+  "version": "0.1.0-alpha.1",
+  "type": "module",
+  "bin": { "dsh-remote": "./src/index.js" },
+  "files": ["src"],
+  "dependencies": {
+    "@dsh-remote/core": "workspace:*",
+    "@dsh-remote/tunnel": "workspace:*"
+  }
+}

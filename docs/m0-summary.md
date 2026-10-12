@@ -45,9 +45,9 @@
 | A1 | **两端自实现 Noise XX 状态机**（Node ~230 行 / Dart ~330 行），原语用成熟库 | TD-4、`packages/core` | 已验证（向量 94 + TCP 3/3 + oracle 26/26） |
 | A2 | **X25519 低阶点守卫** | security.md T16、`packages/core` 的 DH 封装 | ✅ **已实现并验证**（见 §3.1） |
 | A3 | **自实现 HMAC-BLAKE2s（B=64）**，禁用 `Hmac.blake2s()`/`Hkdf(Hmac.blake2s())` | security.md T17、TD-8 | 已实现，对 OpenSSL 逐字节验证 |
-| A4 | **改用应用层心跳**（HTTP/2 CONNECT 下 WebSocket 控制帧不透传，实测 `ws-pings=0`） | protocol.md §5.2 | 参数已定（25 s） |
+| A4 | **应用层心跳**（M0 仅发送应用层帧，未验证控制帧透传行为） | protocol.md §5.2 | 参数已定（25 s） |
 | A5 | **握手预算 ≤10 s**、重连指数退避 | protocol.md §5.3 | 参数已定 |
-| A6 | **客户端并发流上限 32**，服务端超限返回 `busy`，429 与 530 分开显示 | protocol.md §5.4、security.md T12b | 参数已定 |
+| A6 | **逻辑流上限 32，物理连接独立限额**；服务端超限返回 `busy`，429 与 530 分开显示 | protocol.md §5.4、security.md T12b | 参数已定 |
 | A7 | **就绪探测通过前不展示隧道 URL**（冷启动窗口 10–25% 失败） | security.md T12c、TD-5 | 流程已定 |
 | A8 | **隧道 URL 作为一次性会话数据**（cloudflared 重启后旧 URL 永久 530/1033） | TD-5、architecture.md D4 | 已确定 |
 | A9 | **保留 BLAKE2s 而非改 BLAKE2b**（Blake2b 有同类 bug，Dart 侧仍须自实现 HMAC） | TD-4a | 已决策并记录依据 |
@@ -109,9 +109,9 @@ M0 的代码不是丢弃型原型，以下产物应当直接提升进 M1 的正�
   T17（HMAC 自实现 + 表征测试）已落地；T18（手机只做控制端）已写入协议
 - [x] 协议草案定稿到可实现粒度（帧格式、方法表、流语义、重连参数、并发上限、角色模型）
 - [x] 环境与复现流程已文档化（`development.md`）
-- [ ] 把 M0 产出物提升为 `packages/{protocol,core,tunnel}` 的初始代码
-- [ ] 建立仓库级检查：`packages/{protocol,core,tunnel}` 不得 import `@deepseek-ai/*`
-- [ ] 建立 CI：Node 单元测试 + Dart 纯 VM 测试 + 向量互操作 + Android 构建
+- [x] 把 M0 产出物提升为 `packages/{protocol,core,tunnel}` 的初始代码
+- [x] 建立仓库级检查：`packages/{protocol,core,tunnel}` 不得 import `@deepseek-ai/*`
+- [x] 建立 CI 配置（本地对应门禁已验证，远程尚未运行）：Node 单元测试 + Dart 纯 VM 测试 + 向量互操作 + Android 构建
 
 ---
 

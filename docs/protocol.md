@@ -1,7 +1,22 @@
 # 协议设计 — DSH Remote Protocol v1
 
-> 状态：**草案，待 M0-3（Noise 互操作）结论确认后冻结**。
-> 本文档是线上协议的权威定义；`packages/protocol` 的 JSON Schema 由本文档生成，二者必须一致。
+> 状态：**M1 传输与诊断子集冻结（2026-10-12）；M2 应用能力仍为设计目标**。
+> 线上结构以 `packages/protocol/schema.json` 为准，TS/Dart 类型由该 schema 生成。本文规定状态与流语义。
+
+---
+
+## M1 冻结的实现子集
+
+- Node：已绑定公钥的 XX 握手、加密 `hello`、RPC、应用心跳、逻辑流、TCP/WS 载体及重连。
+- Dart：正式纯 VM Noise 参考实现、16 字节帧编解码、生成类型与跨语言向量；完整移动端连接在 M3。
+- 实现方法仅为 `diagnostic.echo`、`stream.open`、`history.page`、`stream.close`；后文 `session.*`、配对、设备、审批、文件与终端属于 M2。
+- 所有多字节头字段为大端。帧头 `seq` 在线上为 uint64，但 v1 限制为 `0..2^53-1`。
+- TCP 每条记录增加 **4 字节大端长度**（不含长度字段本身）。WS 每条二进制 message 对应一条完整记录，禁用压缩。握手记录最多 65535 字节；传输记录最多 65551 字节（16 字节头 + 至多 65535 字节密文），明文上限 65519 字节。
+- 所有 RPC 与 `hello`/`ping`/`pong` 都走流 0。initiator 分配奇数流 ID，responder 分配偶数；ID 在一次连接中递增。每个方向、每个流的物理帧序号从 0 连续递增。Noise nonce 则按整个方向的发送顺序递增，不能用会话事件序号替代。
+- 每连接最多 32 个逻辑流、32 个出站 RPC 与 32 个正在执行的入站 RPC；发送队列最多 128 条或 1 MiB，单条发送期限 10 秒。关闭连接取消请求并清理订阅、定时器和会话密钥；不响应取消的下游占用原 RPC 槽位，避免超时后无界扩张。
+- M1 的内存 `EventJournal` 是有界诊断源（默认 4096 条、4 MiB），只验证断网期间的事件恢复，不承诺进程重启后的存储。真实 DSH 持久历史适配属于 M2。
+- M1 快照 `{kind:"snapshot", cursor, firstSeq, records, hasMore}` 为独立诊断流结构。恢复时冻结 `throughSeq=cursor`，向前补页至本地游标，再按持久 `SessionEvent.seq` 去重应用；最多 128 页、4096 条、4 MiB、30 秒，历史不覆盖游标时返回 `history/unavailable`。实时帧为 `{kind:"append", records}`。
+- DSH 当前 `follow` 无 `sinceSeq` 入参。M2 必须通过 opening snapshot 与 `page` 组合适配；下文完整会话快照及 live delta 是目标语义，不能直接当成宿主返回值透传。
 
 ---
 
@@ -92,8 +107,9 @@
   │─────────── pair.ok ─────────────────────►│ 记录 responder 长期公钥
 ```
 
-**prologue 的作用**：把 `sid` 绑进握手 transcript。攻击者若截屏/复用二维码在另一个会话中重放，
-prologue 不匹配 → 握手失败。这堵住了"拍下二维码即可配对"的路径。
+**prologue 的作用**：把 `sid` 绑进握手 transcript。这能拒绝使用不同 `sid` 的 transcript，
+不能独自阻止同一有效二维码被抢先使用。M2 必须由被控端本机确认 SAS，并在双方确认后原子消费
+`sid` 和写入授权；控制端还必须核对二维码 `pk` 与握手收到的 responder 公钥。
 
 ### 3.4 SAS（短认证串）派生
 
@@ -206,30 +222,10 @@ XX:
 ```jsonc
 // kind: "hello"
 {
-  "v": 1,                     // 协议主版本
   "vmin": 1, "vmax": 1,       // 支持的版本区间
   "caps": ["session","stream","files","terminal","approval"],
   "role": "controller",       // 见 §4.1
-  "kind": "mobile" | "dsh",   // 客户端类别，用于角色策略判定
-  "deviceId": "<长期公钥指纹 base64url>",
-  "name": "Pixel 9"
-}
-```
-
-双方取版本交集与能力交集；交集为空则关闭连接。**协商失败不得降级到弱安全配置。**
-
-握手完成后进入**传输阶段**。
-
-**版本与能力协商**：握手完成后，双方各发一条内层控制帧：
-
-```jsonc
-// kind: "hello"
-{
-  "v": 1,                     // 协议主版本
-  "vmin": 1, "vmax": 1,       // 支持的版本区间
-  "caps": ["session","stream","files","terminal","approval"],
-  "role": "controller",       // 见 §4.1
-  "kind": "mobile" | "dsh",   // 客户端类别，用于角色策略判定
+  "kind": "mobile" | "dsh" | "cli",   // 客户端类别，用于角色策略判定
   "deviceId": "<长期公钥指纹 base64url>",
   "name": "Pixel 9"
 }
@@ -276,17 +272,17 @@ Noise 的 `CipherState` 只有一个 64 bit 计数器，而双工连接需要两
 
 每个方向的 nonce 从 0 独立递增。这等价于 Noise 规范中 `Split()` 的标准用法，必须实现正确。
 
-**Rekey**：任一方向计数器达到 `2^32` 时执行 `Rekey()`（Noise 规范定义的 `REKEY()`），
-并把新密钥生效点通过 `EVT{type:"rekey"}` 告知对端。控制通道消息量小，实际很难达到，但必须
-实现以防止理论上的计数器回绕。
+**M1 消息预算**：任一发送方向在 nonce 达到 `0xfffffffe` 时关闭连接，重新 Noise 握手
+产生新的临时密钥与传输密钥。v1 不实现在线 Rekey 协商；不得重置旧 CipherState 的 nonce。
+重新握手后由会话事件游标恢复历史。
 
 ### 5.2 心跳
 
 - 空闲时每 **25 秒**发一次 `EVT{type:"ping"}`，对端回 `EVT{type:"pong"}`。
 - 理由：Cloudflare 的空闲超时在**其自家文档内部矛盾**（Error 524 页为 125 s，
   connection-limits 表为 100 s）。25 秒对两者都留足余量。
-- **必须使用应用层心跳**：M0 实测挂机日志显示 `ws-pings=0` —— 在 HTTP/2 CONNECT 承载下，
-  WebSocket 协议层的 ping/pong 控制帧**不会被透传**，因此 `ws` 库的内置 ping 不可依赖。
+- **必须使用应用层心跳**，验证对端业务路径存活。M0 的 `ws-pings=0` 是因为客户端未发送
+  WebSocket 控制帧，不能据此判断控制帧透传行为。
 - 连续 3 次心跳无响应 → 判定连接死亡，走重连流程。
 
 ### 5.3 重连参数（M0 实测确定）
@@ -304,10 +300,10 @@ Noise 的 `CipherState` 只有一个 64 bit 计数器，而双工连接需要两
 隧道对每个 quick tunnel 有 **200 in-flight** 硬上限，实测对 WebSocket 连接同样生效，
 第 201 条返回 `HTTP 1.1 429`。因此：
 
-- 客户端默认并发流上限 **32**（远离 200 的红线，且单设备不足以独占额度）。
+- 默认被控端物理连接上限 **32**；每条物理连接复用最多 **32** 个逻辑流。逻辑流不各自占用隧道连接额度。
 - 服务端对超限主动返回 `busy`，**不要**让请求打到隧道去换 429。
 - 429 与 530 必须在 UI 上区分：429 是容量问题（等已有流结束），530/1033 是隧道消失
-  （需重新配对/重建隧道）。
+  （需更新连接地址；已绑定公钥的设备信任不因此失效）。
 
 ---
 
@@ -317,8 +313,8 @@ Noise 的 `CipherState` 只有一个 64 bit 计数器，而双工连接需要两
 
 | 方法 | 方向 | 参数 | 返回 |
 |---|---|---|---|
-| `hello` | 双向 | `{v, vmin, vmax, caps, role, kind, deviceId, name}` | `{v, caps, role, deviceId}` |
-| `ping` | 双向 | `{}` | `{}` |
+| `hello`（EVT） | 双向 | `{type:"hello", vmin, vmax, caps, role, kind, deviceId, name}` | 双方分别发 EVT，不走 RPC |
+| `ping`/`pong`（EVT） | 双向 | `{type, id}` | 回相同 `id` 的 `pong` |
 | `device.list` | → 被控端 | `{}` | `{devices: [{deviceId, name, caps, pairedAt, lastSeenAt, online}]}` |
 | `device.revoke` | → 被控端 | `{deviceId}` | `{revoked: true}` |
 | `device.rename` | → 被控端 | `{deviceId, name}` | `{ok: true}` |
@@ -326,7 +322,8 @@ Noise 的 `CipherState` 只有一个 64 bit 计数器，而双工连接需要两
 | `pair.confirm` | 双向 | `{deviceId, sas}` | `{ok: true, deviceId}` |
 
 `device.*` 与 `pair.*` 仅在**本机授权**（被控端宿主 UI 或 CLI）或已完成配对的连接上可用。
-未配对连接调用它们在 `hello` 之前一律被拒。
+M1 尚未实现这些方法；M2 的 `pair.confirm` 只允许在本机已开启、尚未授权的配对状态使用，
+其他管理操作仍要求 `admin` 授权。
 
 ### 6.2 会话
 
@@ -458,7 +455,7 @@ Noise 的 `CipherState` 只有一个 64 bit 计数器，而双工连接需要两
 
 - `version` 主版本不兼容递增；两端不匹配直接拒绝连接。
 - 新增**方法**不递增主版本；调用方通过 `hello` 交换的 `caps` 判断可用性。
-- 新增**事件类型**不递增主版本，但**必须实现宿主的 `ignorable` 语义**（见 §10.1）——这是
+- 新增**事件类型**不递增主版本，但**必须实现宿主的 `ignorable` 语义**（见 §9.1）——这是
   正确性要求，不是可选项。
 - 新增**帧 kind** 需要主版本递增（帧头解析无法前向兼容）。
 - 协议变更必须同时更新本文档与 `packages/protocol` 的 schema，并在 `packages/core` 增加对应
@@ -477,7 +474,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
     seq: SessionSeq          // BrandedNumber，会话内单调递增
     time: number             // Unix epoch 毫秒
     data: SessionEventMap[K]
-    ignorable?: true         // 见 §10.1
+    ignorable?: true         // 见 §9.1
   } & (K extends SurfaceEventType
       ? { surfaceOp: SurfaceOp; sourceEventSeqs?: SessionSeq[] }
       : { surfaceOp?: never; sourceEventSeqs?: never })
@@ -532,8 +529,8 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 
 | # | 开放项 | 影响 | 状态 |
 |---|---|---|---|
-| O1 | Node 与 Dart 的具体 Noise 库对，以及是否需要编译工具链 | 决定 `packages/core` 的实现方式 | M0-3 验证中 |
-| ~~O2~~ | ~~DSH `SessionWireEvent` 是否可原样跨语言序列化~~ | 决定是否需要规范化层 | **已确认：需要，且可行（§9.2）** |
+| O1 | Node 与 Dart 的 Noise 实现及工具链 | 核心实现方式 | 已关闭：M0 自实现 + M1 正式包，无原生编译依赖 |
+| ~~O2~~ | ~~DSH `SessionWireEvent` 是否可原样跨语言序列化~~ | 决定是否需要规范化层 | **已确认：可原样 JSON 传递（§9.2）** |
 | O3 | `assistant/live-chunk` 类展示帧是否需要自定义压缩（宿主已有 compact stream） | 影响移动端带宽与实现复杂度 | 待评估 |
-| O4 | SAS 长度与表现形式（6 位数字 vs 8 位 vs 词表） | 可用性 vs 安全性的取舍 | 待定 |
+| O4 | SAS 长度与表现形式（6 位数字 vs 8 位 vs 词表） | 可用性 vs 安全性的取舍 | M2 配对 UX 决定；M1 不增加协商分支 |
 | O5 | 局域网直连是否需要 mDNS 自动发现，还是仅手输 IP | 影响"离线可用"体验 | 待定 |

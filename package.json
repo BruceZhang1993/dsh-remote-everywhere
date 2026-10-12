@@ -1,0 +1,24 @@
+{
+  "name": "dsh-remote-everywhere-workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.28.5",
+  "engines": { "node": ">=22.19.0" },
+  "scripts": {
+    "check": "node tools/check.mjs && tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 tools/protocol-consumer.ts",
+    "generate": "node tools/generate-types.mjs",
+    "test": "node --test --test-concurrency=1 --test-timeout=15000 packages/*/test/*.test.js",
+    "test:interop": "node tools/interop.mjs",
+    "test:tunnel": "node tools/tunnel-smoke.mjs",
+    "test:package": "bash tools/package-smoke.sh",
+    "remote": "node packages/cli/src/index.js"
+  },
+  "devDependencies": {
+    "@dsh-remote/core": "workspace:*",
+    "@dsh-remote/protocol": "workspace:*",
+    "@dsh-remote/tunnel": "workspace:*",
+    "noise-curve-ed": "2.1.0",
+    "noise-handshake": "4.2.0",
+    "typescript": "5.9.3"
+  }
+}

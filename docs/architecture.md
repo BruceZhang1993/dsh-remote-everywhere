@@ -197,6 +197,10 @@ Quick Tunnel 每次启动域名都变。因此架构上把它建模为**随二�
 `packages/protocol` 是唯一权威定义（JSON Schema + 生成的 TS/Dart 类型）。两端类型由生成器
 产出，避免手写漂移。
 
+M1 已实现 `packages/{protocol,core,tunnel,cli}` 和 `packages/core/dart` 纯 VM 参考包。
+Node 端以显式公钥绑定验证通道；`EventJournal` 是有界内存诊断源。`packages/dsh-plugin`、
+扫码配对与宿主持久历史适配留到 M2；`apps/mobile` 的完整客户端与 UI 留到 M3。
+
 ---
 
 ## 5. 仓库结构
@@ -250,5 +254,6 @@ Flutter/控制端               被控端插件                    DSH 宿主
     │◄─ stream.event turn/end ───│◄─ session/event turn/end ───│
 ```
 
-断线重连时：客户端用最后确认的 `seq` 作为 `sinceSeq` 重新 `stream.open`，服务端回基线 +
-缺失区间（复用宿主 gap 修复语义），客户端按 `seq` 去重合并。
+断线重连时：客户端用最后确认的持久事件 `seq` 作为 `sinceSeq` 重新 `stream.open`，取得基线后
+以冻结的 `throughSeq` 分页补齐，再按事件 `seq` 去重合并。DSH 的 `follow` 本身没有 `sinceSeq`
+参数；M2 需组合 `follow` opening snapshot 与 `page` 适配，不能直接透传游标。

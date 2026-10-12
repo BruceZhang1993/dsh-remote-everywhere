@@ -65,22 +65,72 @@ export PATH="/home/bruce/Android/flutter/bin:$PATH"
 一项，`yes | flutter doctor --android-licenses` 约 2.3 秒即可解决，之后 doctor 的 Android 行
 会从 `[!]` 变为 `[✓]`。
 
-**不要**清理 `~/.gradle` 与 `~/.pub-cache` —— 它们是增量重建只需约 11 秒的原因（冷构建则需
-约 7.4 分钟）。
+**不要**清理 `~/.gradle` 与 `~/.pub-cache`。M0 项目冷构建约 40 秒、增量约 19 秒；首次全量下载
+约 443 秒。M1 完整握手与认证帧 Android AOT 门禁最终构建约 36 秒（首轮约 79 秒）。
 
 ---
 
 ## 3. 常用命令
+
+### 3.0 M1 仓库验证与资源限制
+
+所有本地构建、检查和测试均通过 `tools/run-limited.sh` 执行，整个子进程树限定为内存 8 GiB、
+swap 4 GiB。该机 systemd 明确拒绝 `--scope --wait`；scope 本身同步等待，因此包装器使用
+`--scope --collect --same-dir`。用户 manager 不可用时包装器停止，不自动绕过限制。
+
+```bash
+export PATH="/home/bruce/Android/flutter/bin:$PATH"
+tools/run-limited.sh pnpm install --frozen-lockfile
+tools/run-limited.sh pnpm check
+tools/run-limited.sh pnpm test
+tools/run-limited.sh bash -lc 'cd packages/core/dart && /home/bruce/Android/flutter/bin/dart pub get --enforce-lockfile && /home/bruce/Android/flutter/bin/dart analyze && /home/bruce/Android/flutter/bin/dart test && /home/bruce/Android/flutter/bin/dart run bin/selftest.dart && /home/bruce/Android/flutter/bin/dart run bin/verify_vectors.dart'
+tools/run-limited.sh env DART_BIN=/home/bruce/Android/flutter/bin/dart pnpm test:interop
+tools/run-limited.sh pnpm test:package
+tools/run-limited.sh bash -lc 'export PATH=/home/bruce/Android/flutter/bin:$PATH; tools/android-gate.sh'
+```
+
+这些命令串行运行。`pnpm check` 包括语法、生成文件一致性、公共 TS 类型消费和宿主依赖边界。
+`test:interop` 校验冻结向量、BLAKE2b 第三方 oracle 和实际 Node↔Dart DR RPC。`test:package`
+打包四个模块并在独立临时目录禁用 install scripts 安装、自检，产物在 `.cache/packages/`。
+Android 门禁创建临时 Flutter 工程，直接依赖正式纯 Dart 包，APK 保存在
+`.cache/m1-android-gate.apk`；这不是移动端产品。测试生成的私钥均留在临时目录并清理。
+
+公网测试依赖现有 cloudflared、真实出网，不放进默认 CI：
+
+```bash
+tools/run-limited.sh env CLOUDFLARED=/absolute/path/to/cloudflared pnpm test:tunnel
+```
+
+不设置 `CLOUDFLARED` 时，该本机 smoke 使用 M0 的 `spikes/tunnel/cloudflared`。CI 已配置 Node、
+纯 Dart、互操作、本地包安装与 Android AOT jobs；容器使用 `--memory=8g --memory-swap=12g`
+（总内存+swap 12 GiB）。远程 CI 的实际运行结果需另行确认。
+
+### 3.0.1 两进程诊断 CLI
+
+```bash
+pnpm remote keygen --out .cache/host.key
+pnpm remote keygen --out .cache/client.key
+# 从各自 keygen 输出取得 PUBLIC_KEY，通过可信本地方式核对后使用。
+pnpm remote serve --key .cache/host.key --peer CLIENT_PUBLIC_KEY --port 47311
+pnpm remote doctor --key .cache/client.key --peer HOST_PUBLIC_KEY --endpoint ws://127.0.0.1:47311/remote/ws
+pnpm remote connect --key .cache/client.key --peer HOST_PUBLIC_KEY --endpoint ws://127.0.0.1:47311/remote/ws --follow
+# TCP 直连：serve --transport tcp；客户端 endpoint 为 tcp://127.0.0.1:47311。
+# 公网：serve 添加 --tunnel --cloudflared /absolute/path/to/cloudflared，使用 ready 输出的 wss endpoint。
+```
+
+先创建 `.cache/`（构建／包 smoke 会自动创建）。`keygen` 拒绝覆盖已有文件，仅输出公钥；
+`doctor` 验证绑定身份与加密 echo；`--follow` 显示诊断事件及重连状态。SIGINT/SIGTERM 清理资源。
+隧道地址失效时要更新地址，保留原公钥绑定；扫码配对与真实 DSH 能力属于 M2。
 
 ### 3.1 Flutter / Android
 
 ```bash
 flutter doctor -v                      # 环境体检
 flutter doctor --android-licenses      # 接受许可（首次可能需要）
-flutter analyze                        # 静态分析
-flutter test                           # 单元测试
-flutter build apk --debug              # 调试包（首次会下载 Gradle/依赖，耗时较长）
-flutter build apk --release            # 发布包
+tools/run-limited.sh flutter analyze   # 静态分析
+tools/run-limited.sh flutter test      # 单元测试
+tools/run-limited.sh flutter build apk --debug   # 调试包（首次会下载 Gradle/依赖，耗时较长）
+tools/run-limited.sh flutter build apk --release # 发布包
 flutter devices                        # 列出可用设备
 flutter emulators                      # 列出模拟器（本机有 3 个 AVD）
 ```
@@ -95,9 +145,9 @@ $ANDROID_HOME/build-tools/37.0.0/aapt2 dump badging \
 ### 3.2 Node
 
 ```bash
-pnpm install
-pnpm -r test
-pnpm -r run check
+tools/run-limited.sh pnpm install --frozen-lockfile
+tools/run-limited.sh pnpm test
+tools/run-limited.sh pnpm check
 ```
 
 ---
@@ -139,8 +189,8 @@ pnpm -r run check
 
 ## 6. 待补充（随里程碑推进）
 
-- [ ] M1：`pnpm install` 后的仓库级命令（构建、测试、lint）
-- [ ] M1：仓库边界检查（确保 `packages/{protocol,core,tunnel}` 不 import `@deepseek-ai/*`）
+- [x] M1：仓库级命令、Node/Dart/互操作/Android AOT 门禁与本地安装验证
+- [x] M1：仓库边界检查（确保 `packages/{protocol,core,tunnel}` 不 import `@deepseek-ai/*`）
 - [ ] M2：把插件安装到 DSH profile 的完整步骤与回滚方式
 - [ ] M3：Android 真机/模拟器调试流程；iOS 的 macOS CI 配置
 - [ ] M4：发布流程（npm publish、版本号规则、双语文档校验）

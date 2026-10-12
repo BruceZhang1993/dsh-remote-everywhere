@@ -8,8 +8,8 @@ accept connections from them. The same protocol is spoken by native Flutter apps
 iOS, so a phone can pair with any enabled controlled machine. The controlled side supports a free,
 one-click public tunnel.
 
-> **Status: pre-alpha, M0 (risk validation) in progress.** This repository currently contains
-> design documents and validation spikes. There is no installable plugin yet. See
+> **Status: pre-alpha, M1 foundation complete (local validation).** Protocol/core/tunnel packages and a diagnostic CLI
+> are implemented. There is no installable DSH plugin yet (M2). See
 > [docs/roadmap.md](docs/roadmap.md) for what is actually done versus planned.
 
 ## What problem this solves
@@ -25,9 +25,14 @@ routing plaintext through a third party.
 
 ## Documentation
 
+M1 diagnostics: `pnpm install --frozen-lockfile`, then `pnpm remote` for CLI usage. See
+[development instructions](docs/development.md#301-两进程诊断-cli) for public-key binding, two-process
+echo/event recovery and optional Quick Tunnel. The CLI currently operates on diagnostic events, not DSH sessions.
+
 | Document | What it covers |
 |---|---|
 | [docs/roadmap.md](docs/roadmap.md) | Objective, milestones, acceptance criteria, risks, current status |
+| [docs/m1-summary.md](docs/m1-summary.md) | **M1 delivery and validation** — packages, CLI, evidence and the remaining integration boundary |
 | [docs/m0-summary.md](docs/m0-summary.md) | **M0 validation results** — what was proven, what was disproven, and the architecture changes it forced |
 | [docs/architecture.md](docs/architecture.md) | Component layout, integration seams, session-capability mapping, repository structure |
 | [docs/protocol.md](docs/protocol.md) | The wire protocol: pairing, Noise handshake, framing, methods, resync semantics |

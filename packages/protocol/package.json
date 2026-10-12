@@ -1,0 +1,9 @@
+{
+  "name": "@dsh-remote/protocol",
+  "version": "0.1.0-alpha.1",
+  "type": "module",
+  "exports": { ".": { "types": "./types.d.ts", "default": "./src/index.js" }, "./schema": "./schema.json" },
+  "files": ["src", "schema.json", "types.d.ts", "vectors"],
+  "types": "./types.d.ts",
+  "dependencies": { "ajv": "8.17.1" }
+}

@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-10-12 — M1 底座完成（未发布）
+
+- 建立 `packages/{protocol,core,tunnel,cli}`、纯 Dart 参考包与 workspace 锁文件，核心包禁止宿主依赖。
+- 交付 pinned Noise XX、认证分帧、RPC、心跳、逻辑流、有限队列、断线补页与诊断 CLI。
+- 隧道 manager 校验 HTTP + 实际 WS 就绪，按进程组起停，取消／超时清理、限量 drain 日志。
+- schema 生成 TS/Dart DTO，冻结 Noise 与 DR 帧向量；公共 TS 类型消费、打包安装与 CI 配置已补齐。
+- 本地验收：Node 34/34、Dart 单测 5/5、自测 31/31、向量 94/94、真实 Node↔Dart RPC、两轮公网加密起停、本地 tarball 独立安装、Android release/AOT 均通过。
+- 修正 M0 总结对 `ws-pings=0` 的误读：客户端没有发送控制帧，未证明“不透传”；物理连接与逻辑流额度分开；地址失效不撤销公钥信任；手机仅控制端不消除失窃风险。
+- v1 在消息预算耗尽前关闭并新握手，不实现未验证的在线 Rekey。真实 DSH、扫码配对、设备表与审批仍属 M2。
+
+完整证据见 [docs/m1-summary.md](docs/m1-summary.md)。远程 CI 未触发；没有 npm 发布或环境部署。
+
+---
+
 ## 2026-10-10 — M0 已发现问题全部收口（未发布）
 
 M0 的四个 spike 不只给出结论，还暴露出若干"文档写了但实现没有"的缺口。本阶段把它们**落地为
@@ -67,7 +81,7 @@ M0 的四个 spike 不只给出结论，还暴露出若干"文档写了但实现
 | 5 | **`pointycastle` 4.0.0 完全没有 BLAKE2s**，其 `ChaCha20Poly1305.process()` 对 >1 block 的消息损坏输出（后 58 字节为零、MAC 恒零） | 完全移出运行时依赖；AEAD 改用 `cryptography` |
 | 6 | **Electron 44.6.0 不支持 `blake2s256`**（BoringSSL 无该摘要），而 Node 22 支持 | 生产路径改用纯 JS 的 `@noble/*`；禁止在生产路径依赖 `node:crypto` 的 BLAKE2s —— 否则会出现"CLI 能跑、Desktop 崩" |
 | 7 | **隧道重启后旧 URL 返回 530 / error 1033** | 实证了"隧道 URL 建模为**一次性会话数据**（随二维码下发，不入持久配置）"的架构决定；见 TD-5 |
-| 8 | 挂机日志显示 `ws-pings=0` | HTTP/2 CONNECT 承载下 WebSocket 控制帧不透传 → **必须用应用层心跳**；协议 §5.2 的 25 秒心跳据此确定 |
+| 8 | 挂机日志显示 `ws-pings=0` | M1 勘误：客户端仅发送应用层帧，未验证 WS 控制帧透传；25 秒应用心跳可验证业务路径存活 |
 
 ### 同时确认的正面结论
 

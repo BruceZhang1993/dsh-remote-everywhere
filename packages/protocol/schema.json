@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dsh-remote.invalid/protocol/v1",
+  "$defs": {
+    "Request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "m", "p"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{11}$"},
+        "m": {"type": "string", "minLength": 1, "maxLength": 128},
+        "p": {"type": "object"}
+      }
+    },
+    "Response": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "r"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{11}$"},
+        "r": {}
+      }
+    },
+    "ErrorResponse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "e"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{11}$"},
+        "e": {
+          "type": "object", "additionalProperties": false, "required": ["code", "message"],
+          "properties": {
+            "code": {"type": "string", "maxLength": 64},
+            "message": {"type": "string", "maxLength": 256}
+          }
+        }
+      }
+    },
+    "Hello": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "vmin", "vmax", "caps", "role", "kind", "deviceId", "name"],
+      "properties": {
+        "type": {"const": "hello"},
+        "vmin": {"type": "integer", "minimum": 1, "maximum": 255},
+        "vmax": {"type": "integer", "minimum": 1, "maximum": 255},
+        "caps": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "enum": ["diagnostic", "session", "stream", "files", "terminal", "approval", "admin"]}},
+        "role": {"type": "string", "enum": ["controller", "controlled"]},
+        "kind": {"type": "string", "enum": ["dsh", "mobile", "cli"]},
+        "deviceId": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22}$"},
+        "name": {"type": "string", "maxLength": 80}
+      }
+    },
+    "Heartbeat": {
+      "type": "object", "additionalProperties": false, "required": ["type", "id"],
+      "properties": {"type": {"type": "string", "enum": ["ping", "pong"]}, "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{11}$"}}
+    },
+    "Bye": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "properties": {"type": {"const": "bye"}}
+    },
+    "SessionEvent": {
+      "type": "object", "additionalProperties": false, "required": ["type", "seq", "time", "data"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1, "maxLength": 128},
+        "seq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "time": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "data": {}, "ignorable": {"const": true}, "sourceEventSeqs": {}, "surfaceOp": {}
+      }
+    },
+    "JournalSnapshot": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "cursor", "firstSeq", "records", "hasMore"],
+      "properties": {
+        "kind": {"const": "snapshot"},
+        "cursor": {"type": "integer", "minimum": -1, "maximum": 9007199254740991},
+        "firstSeq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "records": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/SessionEvent"}},
+        "hasMore": {"type": "boolean"}
+      }
+    },
+    "JournalAppend": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "records"],
+      "properties": {"kind": {"const": "append"}, "records": {"type": "array", "minItems": 1, "maxItems": 256, "items": {"$ref": "#/$defs/SessionEvent"}}}
+    },
+    "StreamEnd": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"error": {"type": "string", "maxLength": 64}}
+    }
+  }
+}

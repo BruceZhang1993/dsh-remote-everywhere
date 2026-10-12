@@ -1,0 +1,8 @@
+{
+  "name": "@dsh-remote/tunnel",
+  "version": "0.1.0-alpha.1",
+  "type": "module",
+  "exports": "./src/index.js",
+  "files": ["src"],
+  "dependencies": { "ws": "8.18.3" }
+}

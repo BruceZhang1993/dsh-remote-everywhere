@@ -1,0 +1,50 @@
+name: M1 checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  protocol-core:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+      options: --memory=8g --memory-swap=12g
+    steps:
+      - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+      - uses: pnpm/action-setup@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.13.5'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check && pnpm test
+      - working-directory: packages/core/dart
+        run: dart pub get --enforce-lockfile && dart analyze && dart test && dart run bin/selftest.dart && dart run bin/verify_vectors.dart
+      - run: pnpm test:interop
+      - run: pnpm test:package
+  android-aot:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+      options: --memory=8g --memory-swap=12g
+    steps:
+      - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates python3 openjdk-21-jdk
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+      - uses: android-actions/setup-android@v3
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+      - run: tools/android-gate.sh
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m1-android-aot-gate
+          path: .cache/m1-android-gate.apk
