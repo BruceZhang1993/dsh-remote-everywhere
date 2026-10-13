@@ -6,8 +6,9 @@
 其他已启用该插件的 DSH 实例，也能接受它们的连接。同一套协议由 Android / iOS 原生 Flutter App
 实现，因此手机可以配对任意开启该能力的被控端。被控端支持免费、一键开启的公网隧道。
 
-> **状态：pre-alpha，M1 底座已完成本地验收。** 已有协议、核心、隧道包与诊断 CLI；可安装的
-> DSH 插件将在 M2 实现。实际进度以 [docs/roadmap.md](docs/roadmap.md) 为准。
+> **状态：pre-alpha，M2 已完成本地验收，M3 移动端开发中。** Flutter 控制端已进入
+> [apps/mobile](apps/mobile/README.md)，真机验收按用户要求暂缓，iOS 编译和发布仍待完成。
+> 实际进度以 [docs/roadmap.md](docs/roadmap.md) 为准。
 
 ## 解决什么问题
 
@@ -23,12 +24,13 @@ DSH 在本地和自带 Web GUI 中很好用，但缺少以下能力：
 
 M1 诊断入口：`pnpm install --frozen-lockfile` 后运行 `pnpm remote` 查看用法。公钥绑定、
 两进程加密通信、事件恢复和可选公网隧道见 [开发手册](docs/development.md#301-两进程诊断-cli)。
-CLI 当前使用诊断事件源，真实 DSH 会话将在 M2 接入。
+此诊断 CLI 使用诊断事件源；真实 DSH 会话使用 [M2 插件](docs/m2-install.md) 或 Flutter 控制端。
 
 | 文档 | 内容 |
 |---|---|
 | [docs/roadmap.md](docs/roadmap.md) | 目标、里程碑、验收标准、风险登记、当前状态 |
 | [docs/m1-summary.md](docs/m1-summary.md) | **M1 交付与验收** —— 正式包、CLI、验证证据和下一阶段边界 |
+| [docs/m3-summary.md](docs/m3-summary.md) | **M3 首版实现与验证** —— 移动端产物、证据与延期验收 |
 | [docs/m0-summary.md](docs/m0-summary.md) | **M0 验证结果** —— 证明了什么、推翻了什么、以及它逼出的架构修正 |
 | [docs/architecture.md](docs/architecture.md) | 组件划分、与 DSH 的集成缝隙、会话能力映射、仓库结构 |
 | [docs/protocol.md](docs/protocol.md) | 线上协议：配对、Noise 握手、分帧、方法、重连语义 |

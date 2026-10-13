@@ -1,0 +1,53 @@
+name: M3 mobile checks
+on:
+  push:
+    paths: ['apps/mobile/**', 'packages/core/dart/**', 'tools/mobile-check.sh', '.github/workflows/mobile.yml']
+  pull_request:
+    paths: ['apps/mobile/**', 'packages/core/dart/**', 'tools/mobile-check.sh', '.github/workflows/mobile.yml']
+  workflow_dispatch:
+    inputs:
+      allow_macos_build:
+        description: '显式允许 macOS 无 systemd 8G/4G 上限构建（需确认 runner 内存）'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android:
+    # Requires an Android SDK and an active user systemd manager.
+    runs-on: [self-hosted, linux, dsh-mobile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+      - run: tools/mobile-check.sh android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m3-android-local-signing-apk
+          path: .cache/mobile/dsh-remote-release.apk
+  ios:
+    needs: android
+    if: github.event_name == 'workflow_dispatch' && inputs.allow_macos_build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+      - run: tools/mobile-check.sh ios
+        env:
+          DSH_IOS_ALLOW_UNBOUNDED: '1'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m3-ios-unsigned-app
+          path: .cache/mobile/dsh-remote-ios-unsigned.zip

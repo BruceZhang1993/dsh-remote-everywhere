@@ -1,6 +1,6 @@
 # M2 交付与验收
 
-基线：M1 本地提交 `c3f64df`。实现分支 `feature/20261012-m2Plugin`，插件 `dsh-remote-everywhere@0.1.0-alpha.2`，宿主锁定 **0.1.7-rc.2**。M2 改动尚未提交或推送，npm 未发布。
+基线：M1 本地提交 `c3f64df`。实现分支 `feature/20261012-m2Plugin`，插件 `dsh-remote-everywhere@0.1.0-alpha.2`，宿主锁定 **0.1.7-rc.2**。M2 已纳入本地提交 `7967cae`，当前 `master` 与实现分支指向该提交；仓库尚未配置 Git remote。本轮未执行推送或 npm 发布。
 
 ## 实现
 
@@ -39,4 +39,22 @@
 - Quick Tunnel URL 重启后失效；地址刷新仍绑定原公钥，不能用网络重试绕过吊销。
 - 本机原有全局 DSH 存在 rc.1/rc.2 混装；本轮只在隔离目录安装完整 rc.2 验证，未修补全局安装。
 
-安装与回滚见 [m2-install.md](m2-install.md)。M3 移动端和 M4 安全审查/正式发布继续独立推进。
+## 2026-10-13 完成度复核
+
+结论：**M2 达到既定的 Linux 本地验收门槛，可以进入 M3**。这不代表跨平台验收、远程 CI 或正式发布完成。
+
+复核对象是提交 `7967cae`；开始复核时工作区干净。核对了设备授权、配对、会话映射、流恢复、审批/提问竞速、文件/终端以及远程调用的后代重入防护实现，并重新执行以下检查：
+
+| 本次复验 | 结果 |
+|---|---|
+| `pnpm check` / `pnpm test` | 静态检查通过；Node 44/44 通过，无跳过 |
+| Dart analyze / test / selftest / vectors | 无问题；5/5、31/31、94/94 通过 |
+| `pnpm test:interop` | 固定向量、第三方 oracle、真实 Node↔Dart 加密 RPC、重放和错误 prologue 拒绝通过 |
+| `tools/m2-host-smoke.mjs` | 两个真实同版 DSH 进程 + 确定性模型夹具；双向配对/会话/审批、提问、队列、子代理、附件及图片权限、diff、MCP、文件/终端、双订阅断线恢复、重启历史和即时吊销通过 |
+| `pnpm test:package` | 重新打包五包；workspace 外以 `--ignore-scripts` 安装同版宿主；CLI 加密自检及上述双宿主链路通过 |
+
+所有复验命令均在 8 GiB 内存 / 4 GiB swap 的用户 systemd scope 内串行执行，临时宿主及消费者已清理。
+
+本次没有重跑真实模型、人工 GUI 或公网 WSS；这些结论沿用上方原验收记录。本次也未构建 Android/iOS、执行真机验收或验证远程 CI。当前 `.github/workflows/ci.yml` 只有既有 Linux/Android 门禁，没有 macOS/iOS job；`apps/mobile` 尚不存在，Dart 包仍只有密码学、分帧、生成类型和 TCP 诊断互操作程序，不能算移动客户端已完成。
+
+安装与回滚见 [m2-install.md](m2-install.md)。M3 按 [开发计划](m3-plan.md) 推进，M4 安全审查/正式发布继续独立推进。

@@ -8,7 +8,7 @@ accept connections from them. The same protocol is spoken by native Flutter apps
 iOS, so a phone can pair with any enabled controlled machine. The controlled side supports a free,
 one-click public tunnel.
 
-> **Status: pre-alpha, M2 plugin implemented and locally validated.** Real DSH instances can pair and control sessions, with native GUI approvals, files and bounded terminal operations. See [M2 results](docs/m2-summary.md) and [installation / rollback](docs/m2-install.md). npm release and mobile apps remain planned.
+> **Status: pre-alpha, M2 locally validated; M3 mobile development underway.** Real DSH instances can pair and control sessions, with native GUI approvals, files and bounded terminal operations. The Flutter controller is in [apps/mobile](apps/mobile/README.md). See [M2 results](docs/m2-summary.md) and [installation / rollback](docs/m2-install.md). Physical-device acceptance, iOS build validation and publication remain pending.
 
 ## What problem this solves
 
@@ -31,6 +31,7 @@ echo/event recovery and optional Quick Tunnel. The CLI currently operates on dia
 |---|---|
 | [docs/roadmap.md](docs/roadmap.md) | Objective, milestones, acceptance criteria, risks, current status |
 | [docs/m2-summary.md](docs/m2-summary.md) | **M2 plugin delivery and acceptance evidence** |
+| [docs/m3-summary.md](docs/m3-summary.md) | **M3 mobile implementation, local evidence and pending acceptance** |
 | [docs/m1-summary.md](docs/m1-summary.md) | **M1 delivery and validation** — packages, CLI, evidence and the remaining integration boundary |
 | [docs/m0-summary.md](docs/m0-summary.md) | **M0 validation results** — what was proven, what was disproven, and the architecture changes it forced |
 | [docs/architecture.md](docs/architecture.md) | Component layout, integration seams, session-capability mapping, repository structure |

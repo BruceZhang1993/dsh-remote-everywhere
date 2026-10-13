@@ -6,4 +6,4 @@ Pinned Noise XX connections over TCP or binary WebSocket, bounded RPC and stream
 
 `EventJournal` and `serveJournal` are diagnostic helpers with bounded in-memory retention. `JournalFollower` retains a durable-event cursor over network reconnects, repairs pages before rendering new events, and rejects missing retained history or unknown required event types. M2 supplies DSH persistent history and assistant presentation semantics.
 
-`dart/` is a pure Dart Noise/frame reference with exact crypto versions and generated DTOs, independent of Flutter. Its live application-wire smoke speaks to production Node `SecureConnection`. It is not yet the mobile client lifecycle.
+`dart/` contains the pure Dart Noise/frame implementation, `RemoteConnection` mobile controller, pairing validation and bounded `SessionState` presentation fold. It stays independent of Flutter; the app owns platform storage and reconnect/lifecycle decisions. `tools/m3-mobile-smoke.mjs` validates it against an isolated real DSH host. Native `dart:io` WebSocket assembles a full message before the application's 65551-byte check; early rejection of malicious fragmented messages remains a hardening gap.

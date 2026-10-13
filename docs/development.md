@@ -192,7 +192,7 @@ tools/run-limited.sh pnpm check
 - [x] M1：仓库级命令、Node/Dart/互操作/Android AOT 门禁与本地安装验证
 - [x] M1：仓库边界检查（确保 `packages/{protocol,core,tunnel}` 不 import `@deepseek-ai/*`）
 - [x] M2：插件安装与回滚见 [m2-install.md](m2-install.md)
-- [ ] M3：Android 真机/模拟器调试流程；iOS 的 macOS CI 配置
+- [x] M3：Flutter 本地验证和 macOS CI 执行入口见 [apps/mobile/README.md](../apps/mobile/README.md)；真机验收暂缓，CI 配置不等于已执行
 - [ ] M4：发布流程（npm publish、版本号规则、双语文档校验）
 
 ## M2 复验
@@ -202,3 +202,14 @@ tools/run-limited.sh bash -lc 'DSH_HOST_MODULE_ROOT="$PWD/.cache/m2-runtime/node
 # 同一脚本支持 M2_GUI=1（人工 GUI 阶段）、M2_TUNNEL=1（真实公网）、M2_SEARCH_DISABLED=1（宿主默认关闭搜索）和真实 provider 参数。
 # 先按 m2-install.md 安装同版宿主；不使用混版的全局 node_modules。
 ```
+
+## M3 移动端
+
+```bash
+DSH_FLUTTER_BIN=/home/bruce/Android/flutter/bin/flutter tools/mobile-check.sh check
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk ANDROID_HOME=/home/bruce/Android/Sdk DSH_FLUTTER_BIN=/home/bruce/Android/flutter/bin/flutter tools/mobile-check.sh android
+tools/run-limited.sh bash -lc 'DSH_HOST_MODULE_ROOT="$PWD/.cache/m2-runtime/node_modules" DART_BIN=/home/bruce/Android/flutter/bin/dart node tools/m3-mobile-smoke.mjs'
+```
+
+第三条使用隔离真实 DSH 与确定性模型，验证 mobile-controller 配对、会话归并、审批/提问、恢复和吊销；不使用真机或真实模型账号。iOS 只能在 macOS/Xcode 验证，详见移动端 README 的显式执行入口。
+在第三条 Node 命令前添加 `M3_TUNNEL=1` 可启用公网 WSS；宿主重启后重新获取隧道地址，仍固定原公钥。验收状态见 [M3 总结](m3-summary.md)。

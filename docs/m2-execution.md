@@ -31,4 +31,4 @@
 
 ## 验收状态
 
-Linux / DSH 0.1.7-rc.2 本地验收完成：真实模型双向互控、原生 GUI 竞速及提问、子代理/队列/附件/diff、独立 tarball 和公网 WSS 均已验证。最终证据及限制见 [m2-summary.md](m2-summary.md)；M2 改动尚未提交、推送或发布。
+Linux / DSH 0.1.7-rc.2 本地验收完成：真实模型双向互控、原生 GUI 竞速及提问、子代理/队列/附件/diff、独立 tarball 和公网 WSS 均已验证。M2 已纳入本地提交 `7967cae`；2026-10-13 完成度复核再次通过，证据及边界见 [m2-summary.md](m2-summary.md)。当前仓库未配置 Git remote，本轮未推送或发布。
