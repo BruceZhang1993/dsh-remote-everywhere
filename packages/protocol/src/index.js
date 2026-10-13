@@ -33,6 +33,24 @@ export function assertValue(name, value) {
   return value
 }
 
+const methodSchemas = {
+  'workspace.list': 'EmptyParams',
+  'changes.summary': 'ChangesSummaryParams', 'changes.diff': 'ChangesDiffParams',
+  'subagent.list': 'SessionIdentityParams', 'subagent.prompt': 'SubagentPromptParams', 'subagent.cancel': 'SubagentIdentityParams',
+  'session.upload.begin': 'UploadBeginParams', 'session.upload.chunk': 'UploadChunkParams', 'session.upload.finish': 'UploadFinishParams',
+  'session.list': 'EmptyParams', 'session.search': 'SessionSearchParams', 'session.create': 'SessionCreateParams',
+  'session.fork': 'SessionForkParams', 'session.rename': 'SessionRenameParams', 'session.prompt': 'SessionPromptParams',
+  'session.cancel': 'SessionIdentityParams', 'session.queue.update': 'SessionQueueParams', 'session.attachment': 'SessionAttachmentParams', 'session.projections': 'SessionIdentityParams',
+  'stream.open': 'SessionStreamParams', 'history.page': 'HistoryPageParams', 'stream.close': 'StreamIdentityParams', 'control.subscribe': 'StreamIdentityParams',
+  'approval.pending': 'ApprovalPendingParams', 'approval.decide': 'ApprovalDecisionParams', 'question.answer': 'QuestionAnswerParams',
+  'device.list': 'EmptyParams', 'device.revoke': 'DeviceIdentityParams', 'device.rename': 'DeviceRenameParams', 'pair.begin': 'PairBeginParams', 'pair.confirm': 'PairConfirmParams',
+  'files.list': 'FileListParams', 'files.read': 'FileReadParams', 'files.write': 'FileWriteParams', 'terminal.exec': 'TerminalExecParams', 'operation.prepare': 'OperationPrepareParams',
+}
+export function assertMethod(method, params) {
+  if (!methodSchemas[method]) throw new ProtocolError('unsupported', 'unknown application method')
+  return assertValue(methodSchemas[method], params)
+}
+
 /** Header sequence is a physical-stream counter, never a SessionEvent cursor. */
 export function encodeHeader({ kind, streamId = 0, seq }) {
   if (!Object.values(KINDS).includes(kind) || !Number.isInteger(streamId) || streamId < 0 || streamId > 0xffffffff ||
@@ -80,7 +98,7 @@ function validatePayload(kind, value) {
   if (name) return assertValue(name, value)
   if (kind === KINDS.SDATA && value instanceof Uint8Array) return
   if (kind === KINDS.EVT) {
-    const eventName = { hello: 'Hello', ping: 'Heartbeat', pong: 'Heartbeat', bye: 'Bye' }[value?.type]
+    const eventName = { hello: 'Hello', ping: 'Heartbeat', pong: 'Heartbeat', bye: 'Bye', application: 'ApplicationEvent', 'authentication-rejected': 'AuthenticationRejected' }[value?.type]
     if (eventName) return assertValue(eventName, value)
     if (value?.kind === 'snapshot') return assertValue('JournalSnapshot', value)
     if (value?.kind === 'append') return assertValue('JournalAppend', value)

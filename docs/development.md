@@ -191,6 +191,14 @@ tools/run-limited.sh pnpm check
 
 - [x] M1：仓库级命令、Node/Dart/互操作/Android AOT 门禁与本地安装验证
 - [x] M1：仓库边界检查（确保 `packages/{protocol,core,tunnel}` 不 import `@deepseek-ai/*`）
-- [ ] M2：把插件安装到 DSH profile 的完整步骤与回滚方式
+- [x] M2：插件安装与回滚见 [m2-install.md](m2-install.md)
 - [ ] M3：Android 真机/模拟器调试流程；iOS 的 macOS CI 配置
 - [ ] M4：发布流程（npm publish、版本号规则、双语文档校验）
+
+## M2 复验
+
+```bash
+tools/run-limited.sh bash -lc 'DSH_HOST_MODULE_ROOT="$PWD/.cache/m2-runtime/node_modules" node tools/m2-host-smoke.mjs'
+# 同一脚本支持 M2_GUI=1（人工 GUI 阶段）、M2_TUNNEL=1（真实公网）、M2_SEARCH_DISABLED=1（宿主默认关闭搜索）和真实 provider 参数。
+# 先按 m2-install.md 安装同版宿主；不使用混版的全局 node_modules。
+```

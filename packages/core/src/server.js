@@ -8,11 +8,12 @@ import { TcpTransport, WebSocketTransport } from './transport.js'
 import { BLAKE2S } from './primitives.js'
 
 /** Own a listener and every accepted connection; closing the server releases both. */
-export async function createRemoteServer({ keyPair, peerPublicKey, port = 0, host = '127.0.0.1', transport = 'ws', maxConnections = 32, ...connectionOptions }) {
+export async function createRemoteServer({ keyPair, peerPublicKey, connectionOptionsForRequest, port = 0, host = '127.0.0.1', transport = 'ws', maxConnections = 32, ...connectionOptions }) {
   if (!['tcp', 'ws'].includes(transport) || !Number.isInteger(maxConnections) || maxConnections < 1 || maxConnections > 128) {
     throw new Error('invalid server transport or connection limit')
   }
-  if (keyPair?.secretKey?.length !== 32 || keyPair?.publicKey?.length !== 32 || peerPublicKey?.length !== 32 ||
+  if (connectionOptionsForRequest && transport !== 'ws') throw new Error('dynamic peer authorization requires WebSocket request routing')
+  if (keyPair?.secretKey?.length !== 32 || keyPair?.publicKey?.length !== 32 || (peerPublicKey?.length !== 32 && typeof connectionOptionsForRequest !== 'function') ||
       Buffer.compare(Buffer.from(BLAKE2S.generateKeyPair(keyPair.secretKey).publicKey), Buffer.from(keyPair.publicKey)) !== 0) throw new Error('invalid server identities')
   assertValue('Hello', { type: 'hello', vmin: 1, vmax: 1, caps: connectionOptions.caps ?? ['diagnostic', 'stream'],
     role: 'controlled', kind: connectionOptions.kind ?? 'cli', name: connectionOptions.name ?? 'DSH Remote', deviceId: 'A'.repeat(22) })
@@ -25,9 +26,9 @@ export async function createRemoteServer({ keyPair, peerPublicKey, port = 0, hos
   const sockets = new Set()
   let stopping = false
   let closing
-  const accept = carrier => {
+  const accept = (carrier, options = {}) => {
     if (stopping || connections.size >= maxConnections) { carrier.close(); return }
-    const connection = new SecureConnection(carrier, { ...connectionOptions, initiator: false, keyPair, peerPublicKey })
+    const connection = new SecureConnection(carrier, { ...connectionOptions, ...options, initiator: false, keyPair, peerPublicKey })
     connections.add(connection)
     connection.once('closed', error => { connections.delete(connection); owner.emit('disconnected', error.code) })
     connection.ready.catch(error => owner.emit('rejected', error.code))
@@ -50,11 +51,14 @@ export async function createRemoteServer({ keyPair, peerPublicKey, port = 0, hos
     server.requestTimeout = 10000
     wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WIRE_BYTES, perMessageDeflate: false })
     server.on('upgrade', (request, socket, head) => {
-      if (request.url !== '/remote/ws' || stopping || connections.size >= maxConnections) {
+      let options = {}
+      try { options = connectionOptionsForRequest?.(request) ?? {} }
+      catch { socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return }
+      if (request.url?.split('?')[0] !== '/remote/ws' || stopping || connections.size >= maxConnections) {
         socket.end(`HTTP/1.1 ${connections.size >= maxConnections ? '429 Too Many Requests' : '404 Not Found'}\r\nConnection: close\r\n\r\n`)
         return
       }
-      wss.handleUpgrade(request, socket, head, ws => accept(new WebSocketTransport(ws)))
+      wss.handleUpgrade(request, socket, head, ws => accept(new WebSocketTransport(ws), options))
     })
   }
   await new Promise((resolve, reject) => {

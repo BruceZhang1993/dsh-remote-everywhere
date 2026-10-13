@@ -19,7 +19,7 @@ for (const file of [...files('packages'), ...files('tools')].filter(file => /\.(
   const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' })
   if (result.status !== 0) throw new Error(`syntax check failed: ${file}\n${result.stderr}`)
 }
-for (const name of ['protocol', 'core', 'tunnel', 'cli']) {
+for (const name of ['protocol', 'core', 'tunnel', 'cli', 'dsh-plugin']) {
   const directory = `packages/${name}`
   const pkg = JSON.parse(readFileSync(`${directory}/package.json`))
   const leaves = value => typeof value === 'string' ? [value] : Object.values(value ?? {}).flatMap(leaves)

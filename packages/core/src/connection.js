@@ -5,7 +5,7 @@ import {
   MAX_QUEUE_BYTES, MAX_QUEUE_MESSAGES, ProtocolError, encodeHeader, decodeHeader,
   encodePayload, decodePayload,
 } from '@dsh-remote/protocol'
-import { NoiseXX } from './noise-xx.js'
+import { NoiseXX, deriveSas } from './noise-xx.js'
 import { BLAKE2S, sha256 } from './primitives.js'
 import { equalBytes, utf8 } from './bytes.js'
 
@@ -15,11 +15,12 @@ const requestId = () => randomBytes(8).toString('base64url')
 /** One pinned Noise session. The owner closes it; it never reconnects or reuses a nonce. */
 export class SecureConnection extends EventEmitter {
   constructor(transport, {
-    initiator, keyPair, peerPublicKey, caps = ['diagnostic', 'stream'], kind = 'cli', name = 'DSH Remote',
+    initiator, keyPair, peerPublicKey, verifyPeer, pairSid, caps = ['diagnostic', 'stream'], kind = 'cli', name = 'DSH Remote',
     handshakeTimeoutMs = 10000, requestTimeoutMs = 10000, heartbeatMs = 25000, sendTimeoutMs = 10000,
   }) {
     super()
-    if (peerPublicKey?.length !== 32 || keyPair?.secretKey?.length !== 32 || keyPair?.publicKey?.length !== 32) {
+    if ((peerPublicKey?.length !== 32 && (initiator || typeof verifyPeer !== 'function')) || keyPair?.secretKey?.length !== 32 || keyPair?.publicKey?.length !== 32 ||
+        pairSid !== undefined && !/^[A-Za-z0-9_-]{22}$/.test(pairSid)) {
       transport.close()
       throw new ProtocolError('invalid-argument', 'explicit 32-byte identity and peer pin required')
     }
@@ -28,7 +29,9 @@ export class SecureConnection extends EventEmitter {
     }
     this.transport = transport
     this.initiator = initiator
-    this.peerPublicKey = Uint8Array.from(peerPublicKey)
+    this.peerPublicKey = peerPublicKey ? Uint8Array.from(peerPublicKey) : null
+    this.verifyPeer = verifyPeer
+    this.pairSid = pairSid
     this.caps = new Set(caps)
     this.negotiatedCaps = new Set()
     this.kind = kind
@@ -50,7 +53,7 @@ export class SecureConnection extends EventEmitter {
     this.heartbeats = new Set()
     this.noise = new NoiseXX({
       initiator, staticKeyPair: keyPair, suite: BLAKE2S,
-      prologue: utf8(`dsh-remote/v1/resume:${deviceId(initiator ? peerPublicKey : keyPair.publicKey)}`),
+      prologue: utf8(pairSid ? `dsh-remote/v1/pair:${pairSid}` : `dsh-remote/v1/resume:${deviceId(initiator ? peerPublicKey : keyPair.publicKey)}`),
     })
     this.ready = new Promise((resolve, reject) => { this.resolveReady = resolve; this.rejectReady = reject })
     this.ready.catch(() => {}) // An accepted peer may disconnect before its owner awaits ready.
@@ -75,11 +78,20 @@ export class SecureConnection extends EventEmitter {
 
   receive(bytes) {
     if (this.state === 'closed') return
+    if (this.state === 'denied') return
     if (this.state === 'handshaking') {
       this.noise.readMessage(bytes)
-      if (this.noise.rs && !equalBytes(this.noise.rs, this.peerPublicKey)) throw new ProtocolError('unauthorized', 'peer identity does not match pin')
+      if (this.noise.rs && this.peerPublicKey && !equalBytes(this.noise.rs, this.peerPublicKey)) throw new ProtocolError('unauthorized', 'peer identity does not match pin')
       if (!this.noise.complete) this.enqueue(this.noise.writeMessage()).catch(error => this.close(error))
       if (this.noise.complete) {
+        if (this.verifyPeer && this.verifyPeer(this.noise.rs) !== true) {
+          this.state = 'denied'
+          const error = new ProtocolError('unauthorized', 'peer identity is not authorized')
+          this.sendFrame(KINDS.EVT, { type: 'authentication-rejected', code: 'unauthorized' }).then(() => this.close(error), () => this.close(error))
+          return
+        }
+        this.peerPublicKey = Uint8Array.from(this.noise.rs)
+        this.sas = deriveSas(this.noise.handshakeHash, this.initiator ? this.keyPair.publicKey : this.peerPublicKey, this.initiator ? this.peerPublicKey : this.keyPair.publicKey)
         for (const value of [this.noise.s.secretKey, this.noise.e?.secretKey, this.noise.ck, this.noise.cipher.k]) value?.fill(0)
         this.state = 'hello'
         this.sendFrame(KINDS.EVT, {
@@ -97,12 +109,14 @@ export class SecureConnection extends EventEmitter {
     const value = decodePayload(header.kind, plaintext)
     stream.rx++
     if (this.state === 'hello') {
+      if (header.streamId === 0 && header.kind === KINDS.EVT && value.type === 'authentication-rejected') throw new ProtocolError('unauthorized', 'paired host refused this device')
       if (header.streamId !== 0 || header.kind !== KINDS.EVT || value.type !== 'hello' ||
           value.role !== (this.initiator ? 'controlled' : 'controller') || value.kind === 'mobile' && value.role === 'controlled' ||
           value.vmin > VERSION || value.vmax < VERSION || value.vmin > value.vmax || value.deviceId !== deviceId(this.peerPublicKey)) {
         throw new ProtocolError('unauthorized', 'invalid peer hello')
       }
       this.negotiatedCaps = new Set(value.caps.filter(cap => this.caps.has(cap)))
+      this.peerHello = value
       if (this.negotiatedCaps.size === 0) throw new ProtocolError('unsupported', 'no common capabilities')
       this.state = 'ready'
       clearTimeout(this.handshakeTimer)
@@ -122,6 +136,7 @@ export class SecureConnection extends EventEmitter {
       if (value.type === 'ping') this.sendFrame(KINDS.EVT, { type: 'pong', id: value.id }).catch(error => this.close(error))
       else if (value.type === 'pong') this.heartbeats.delete(value.id)
       else if (value.type === 'bye') this.close()
+      else if (value.type === 'application') this.emit('event', value)
       else throw new ProtocolError('invalid-argument', 'unexpected control event')
     } else {
       if (header.streamId === 0) throw new ProtocolError('invalid-argument', 'stream frame requires stream id')
@@ -156,7 +171,8 @@ export class SecureConnection extends EventEmitter {
   }
 
   sendFrame(kind, value, streamId = 0) {
-    if (this.state !== 'ready' && !(this.state === 'hello' && kind === KINDS.EVT && value.type === 'hello')) {
+    if (this.state !== 'ready' && !(this.state === 'hello' && kind === KINDS.EVT && value.type === 'hello') &&
+        !(this.state === 'denied' && kind === KINDS.EVT && value.type === 'authentication-rejected')) {
       return Promise.reject(new ProtocolError('unauthorized', 'connection is not authenticated'))
     }
     try {

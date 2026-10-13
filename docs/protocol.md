@@ -1,9 +1,24 @@
 # 协议设计 — DSH Remote Protocol v1
 
-> 状态：**M1 传输与诊断子集冻结（2026-10-12）；M2 应用能力仍为设计目标**。
+> 状态：**M1 传输冻结；M2 应用实现（2026-10-13），以下差异优先于早期目标描述**。
 > 线上结构以 `packages/protocol/schema.json` 为准，TS/Dart 类型由该 schema 生成。本文规定状态与流语义。
 
 ---
+
+## M2 实现与宿主适配
+
+线上参数以 schema 为准。支持会话、工作区、子代理、上传、审批/提问、文件终端与代码 diff。DSH 0.1.7-rc.2 的差异如下：
+
+- fork 使用 `atSeq`；队列 edit 使用文本 `content` 数组；子会话地址含 `parentSessionId/childSessionId/mode`。
+- follow opening snapshot 冻结 cursor，用历史 page 补齐 `sinceSeq`，连续 seq 有缺口时拒绝静默跳过。
+- assistant live 使用宿主 `assistant-stream` start/chunk/end，持久事件使用 snapshot/append；早期设计的 replace/settle 文案不是本版线上 DTO。
+- 配对 payload 为 `{v,sid,exp,relay,pk,name,caps}`：exp 为 Unix 秒，pk 为标准 base64；配对 prologue 绑定 sid，确认后普通连接恢复固定身份绑定。
+- 应用流将一个最大 4 MiB JSON 值分成 32 KiB SDATA，再以 ApplicationEvent 的 `bytes` 完成标记拼接；approval/question 为控制流事件。
+- 上传使用 `session.upload.begin/chunk/finish`，单块 ack，不把大 base64 放进一次 RPC。文件写与终端使用绑定完整参数的一次性审批许可。
+- `changes.summary/diff` 复用宿主逐 turn 快照；diff 使用逻辑流，快照失效返回 history/unavailable。
+- 已吊销身份在 Noise 认证后收到加密的 authentication-rejected，不进入 ready，也不作为可重试断网处理。
+
+完整列表见 `packages/protocol/src/index.js` 的 methodSchemas；包边界和交付限制见 [M2 总结](m2-summary.md)。
 
 ## M1 冻结的实现子集
 
@@ -332,11 +347,11 @@ M1 尚未实现这些方法；M2 的 `pair.confirm` 只允许在本机已开启�
 | `session.list` | `{}` | `{items: SessionSummary[]}` |
 | `session.search` | `{query}` | `{items: SessionSummary[]}` |
 | `session.create` | `{workspaceId?, cwd?, sessionId?, agentPreset?}` | `{sessionId, agentPreset?}` |
-| `session.fork` | `{sessionId, throughTurn?}` | `{sessionId}` |
-| `session.rename` | `{sessionId, title}` | `{ok: true}` |
+| `session.fork` | `{sessionId, atSeq?}` | `{sessionId}` |
+| `session.rename` | `{sessionId, title}` | `{title, seq}` |
 | `session.prompt` | `{requestId, sessionId, mode: 'queue'\|'steer', content: PromptContentPart[]}` | `{accepted: true}` |
 | `session.cancel` | `{sessionId}` | `{accepted: true}` |
-| `session.queue.update` | `{sessionId, itemId, action: {kind: 'steer'\|'edit'\|'remove', text?}}` | `{ok: true}` |
+| `session.queue.update` | `{sessionId, itemId, action: {kind: 'steer'\|'edit'\|'remove', content?}}` | `{accepted: true}` |
 
 `PromptContentPart`：`{type:'text', text}` \| `{type:'image', …}` \| `{type:'file', receiptId}`。
 
@@ -346,9 +361,9 @@ M1 尚未实现这些方法；M2 的 `pair.confirm` 只允许在本机已开启�
 |---|---|---|
 | `stream.open`（流） | `{address, sinceSeq?, assistantStream?, maxMessages?}` | 流：见 §7 |
 | `history.page`（流） | `{address, throughSeq, beforeSeq?, maxMessages?}` | 流：历史记录分页 |
-| `control.subscribe`（流） | `{}` | 流：进程级基线（jobs / projection / 会话增删） |
+| `control.subscribe`（流） | `{streamId}` | 流：宿主投影 baseline / projection |
 
-`address`：`{kind:'session', sessionId}` \| `{kind:'subagent', sessionId, agentId}`。
+`address`：`{kind:'session', sessionId}` \| `{kind:'subagent', parentSessionId, childSessionId, mode}`。
 
 ### 6.4 审批与提问
 
@@ -357,7 +372,7 @@ M1 尚未实现这些方法；M2 的 `pair.confirm` 只允许在本机已开启�
 | `approval.request` | 被控端 → 控制端 | `{approvalId, sessionId, callId?, toolName, reason?, deadline?}` | — |
 | `approval.decide` | 控制端 → 被控端 | `{approvalId, outcome}` | `{ok: true}` |
 | `approval.pending` | 控制端 → 被控端 | `{sessionId?}` | `{items: PendingApproval[]}` |
-| `approval.responded` | 被控端 → 控制端 | `{approvalId, outcome, by: 'local'\|'remote'}` | — |
+| `approval.responded` | 被控端 → 控制端 | `{id, sessionId, outcome, by: 'local'\|'remote'}` | — |
 
 `outcome ∈ {'allowed-once', 'rejected', 'cancelled', 'unavailable'}`，与宿主 `ApprovalOutcome`
 一致。
@@ -369,12 +384,12 @@ M1 尚未实现这些方法；M2 的 `pair.confirm` 只允许在本机已开启�
 
 | 方法 | 参数 | 返回 |
 |---|---|---|
-| `files.list` | `{sessionId?, path}` | `{entries: [{name, kind, size, mtime}]}` |
-| `files.read` | `{sessionId?, path, maxBytes?}` | 流：分块二进制 |
-| `files.write` | `{sessionId?, path}` + 流上行 | `{ok: true, bytes}` |
-| `terminal.exec`（流） | `{sessionId?, command, cwd?, approvalId}` | 流：stdout/stderr 分块 + 退出码 |
+| `files.list` | `{sessionId, path, offset?}` | `{entries: [{name, kind, size?}], hasMore}` |
+| `files.read` | `{sessionId, path, offset?, maxBytes?, streamId?}` | RPC 字节窗口或分块逻辑流 |
+| `files.write` | `{sessionId, path, content, approvalId}`（UTF-8 ≤32 KiB） | `{ok: true, bytes}` |
+| `terminal.exec`（流） | `{sessionId, command, cwd?, approvalId, streamId?}` | 流：stdout/stderr 分块 + 退出码 |
 
-`terminal.exec` **强制**要求先取得审批；`approvalId` 必须能对应到一条已决的
+`files.write` 与 `terminal.exec` **强制**要求先通过 `operation.prepare` 取得审批；`approvalId` 必须能对应到一条已决的
 `allowed-once` 记录。
 
 ### 6.6 错误码

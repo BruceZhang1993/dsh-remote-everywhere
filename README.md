@@ -8,9 +8,7 @@ accept connections from them. The same protocol is spoken by native Flutter apps
 iOS, so a phone can pair with any enabled controlled machine. The controlled side supports a free,
 one-click public tunnel.
 
-> **Status: pre-alpha, M1 foundation complete (local validation).** Protocol/core/tunnel packages and a diagnostic CLI
-> are implemented. There is no installable DSH plugin yet (M2). See
-> [docs/roadmap.md](docs/roadmap.md) for what is actually done versus planned.
+> **Status: pre-alpha, M2 plugin implemented and locally validated.** Real DSH instances can pair and control sessions, with native GUI approvals, files and bounded terminal operations. See [M2 results](docs/m2-summary.md) and [installation / rollback](docs/m2-install.md). npm release and mobile apps remain planned.
 
 ## What problem this solves
 
@@ -32,6 +30,7 @@ echo/event recovery and optional Quick Tunnel. The CLI currently operates on dia
 | Document | What it covers |
 |---|---|
 | [docs/roadmap.md](docs/roadmap.md) | Objective, milestones, acceptance criteria, risks, current status |
+| [docs/m2-summary.md](docs/m2-summary.md) | **M2 plugin delivery and acceptance evidence** |
 | [docs/m1-summary.md](docs/m1-summary.md) | **M1 delivery and validation** — packages, CLI, evidence and the remaining integration boundary |
 | [docs/m0-summary.md](docs/m0-summary.md) | **M0 validation results** — what was proven, what was disproven, and the architecture changes it forced |
 | [docs/architecture.md](docs/architecture.md) | Component layout, integration seams, session-capability mapping, repository structure |
@@ -59,7 +58,7 @@ early environment research was partly wrong and the corrections matter for anyon
 - **Controlled** — an ordinary DSH instance with this plugin enabled. Exposes its *real* sessions:
   chat, streaming agent output, tool calls, approvals, files. Nothing runs in a sidecar: the plugin
   is an in-process Cordis plugin.
-- **Controller** — another DSH instance. Its agent gets native MCP tools (`remote_*`) plus a bundled
+- **Controller** — another DSH instance. Its agent gets native DSH tools and optional standard MCP tools (`remote_*`) plus a bundled
   skill, so "connect to my desktop and check the build" is a normal tool call.
 - **Mobile** — a Flutter app that speaks the same protocol. Pairing is a QR code plus a
   human-compared 6-digit short authentication string. **The mobile app is controller-only**: a

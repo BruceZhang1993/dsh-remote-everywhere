@@ -9,7 +9,7 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$TASK_ROOT/.cache/packages"
-for package in protocol core tunnel cli; do
+for package in protocol core tunnel cli dsh-plugin; do
   (cd "$TASK_ROOT/packages/$package" && pnpm pack --pack-destination "$TASK_ROOT/.cache/packages")
 done
 printf '{"private":true,"type":"module"}\n' > "$TASK_CONSUMER/package.json"
@@ -17,7 +17,9 @@ npm install --prefix "$TASK_CONSUMER" --ignore-scripts --no-audit --no-fund \
   "$TASK_ROOT/.cache/packages/dsh-remote-protocol-0.1.0-alpha.1.tgz" \
   "$TASK_ROOT/.cache/packages/dsh-remote-core-0.1.0-alpha.1.tgz" \
   "$TASK_ROOT/.cache/packages/dsh-remote-tunnel-0.1.0-alpha.1.tgz" \
-  "$TASK_ROOT/.cache/packages/dsh-remote-cli-0.1.0-alpha.1.tgz"
+  "$TASK_ROOT/.cache/packages/dsh-remote-cli-0.1.0-alpha.1.tgz" \
+  "$TASK_ROOT/.cache/packages/dsh-remote-everywhere-0.1.0-alpha.2.tgz" \
+  @deepseek-ai/dsh@0.1.7-rc.2
 TASK_CLI="$TASK_CONSUMER/node_modules/@dsh-remote/cli/src/index.js"
 node "$TASK_CLI" keygen --out "$TASK_CONSUMER/host.key" > "$TASK_CONSUMER/host-public.json"
 node "$TASK_CLI" keygen --out "$TASK_CONSUMER/client.key" > "$TASK_CONSUMER/client-public.json"
@@ -35,3 +37,6 @@ kill -TERM "$TASK_SERVER_PID"
 wait "$TASK_SERVER_PID"
 TASK_SERVER_PID=''
 printf 'standalone packed CLI passed with install scripts disabled\n'
+
+DSH_HOST_MODULE_ROOT="$TASK_CONSUMER/node_modules" DSH_PLUGIN_PACKAGE_ROOT="$TASK_CONSUMER/node_modules/dsh-remote-everywhere" node "$TASK_ROOT/tools/m2-host-smoke.mjs"
+printf 'standalone packed DSH plugin passed with install scripts disabled\n'
