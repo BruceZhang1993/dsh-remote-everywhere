@@ -98,3 +98,6 @@ GitHub Packages 候选目录 `.cache/github-packages-0.1.0`，入口与环境配
 
 提交 `cba3ad4` 的 [协议 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509381539) 中 protocol-core **成功**，包含 clean 来源的 scoped 候选安装、真实 DSH 回归、9/9 发布门禁与产物上传；该 workflow 的 Android AOT 及 [移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509381630) 仍失败。
 Android setup action 默认请求已撤下的 SDK `tools` 包，报 Failed to find package 'tools'。进一步只将两处 packages 明确为 platform-tools、platforms;android-36、build-tools;36.0.0，与本机 Flutter 3.47.7 的 compileSdk=36 及已验证 SDK 一致；SDK/构建门禁未绕过，结果待复验。
+
+提交 `31ec871` 的 [协议 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509733494) 中 protocol-core 再次成功；SDK 组件安装也已通过，但 Android 构建命令在 Flutter SDK 的 Git ownership 检查处失败，[移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509733543) 同样失败。
+SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建步骤将准确的 github.workspace 和 action 导出的 FLUTTER_ROOT 纳入 Git protected config，不信任其他目录。源码所有权和校验逻辑不改，后续构建结果待复核。
