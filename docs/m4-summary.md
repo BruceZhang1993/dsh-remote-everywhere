@@ -1,7 +1,7 @@
 # M4 加固与验证记录
 
 日期：2026-10-14。基线 `475ea94`，分支 `feature/20261013-m4Hardening`。
-状态：**接收加固、统一审计、本地 scoped 候选与 GitHub 发布流程已收口；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
+状态：**接收加固、统一审计、scoped 候选、首次远端 CI 与 GitHub 发布流程准备已收口；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
 用户已创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，origin 已接入；默认 master，Actions 已启用。用户明确授权后，M4 实现提交 `f266b56` 首次推送至 origin/master，远端 SHA 已核对一致。CI 首轮结果及修复见下方。
 远端只读核验：private vulnerability reporting 未启用，environment 列表为空，默认 workflow token 权限为 read。发布 job 的 packages:write 声明已准备；保护 environment/批准 SHA 与私密收件验收仍需落实，仓库创建不代表已可正式发布。
 
@@ -60,7 +60,7 @@ M3 首版代码已提交，工作区在开工时干净。原有 Node **44/44**�
 | Android 外部供应链库存 | 91 artifacts / 86 坐标；artifact/POM 哈希齐全，OSV 快照 0，6 个直接许可证声明缺口保留 |
 | Android APK | 加固版本 release 构建通过，APK 签名与 zipalign 4 字节校验通过；仍为本地调试签名，未安装设备 |
 | 真机、iOS、真实模型 | 未执行，延期项保留 |
-| 远端 CI | 首轮已执行但失败；容器工具/ownership 修复结果待复核 |
+| 远端 CI | 验证提交 `e4a1b32` 的协议/安全、Android AOT 与移动 Android job 全部通过；iOS 按条件跳过 |
 
 加固版本保存在 `.cache/m4/dsh-remote-release.apk`，M3 的 `.cache/mobile/dsh-remote-release.apk` 保留原版本与证据。
 APK 已因控制帧修复重新构建，SHA-256：`703ff02ea4cd4fb08bcda2062e7f2ee1f78ebd1d2bc83a12e4045f761a3229b8`；首批 hash 不再作为当前候选依据。
@@ -88,16 +88,26 @@ tools/run-limited.sh node tools/dependency-inventory.mjs
 GitHub Packages 候选目录 `.cache/github-packages-0.1.0`，入口与环境配置见 [发布说明](release.md)；仓库归属已确认，正式发布仍需独立审查、保护 environment、批准 SHA 与有效披露渠道，不能由仓库创建推断已获发布授权。
 仓库接入复验：实际 scope 五包独立安装、诊断 CLI、两个真实同版 DSH 双向闭环与 MCP metadata 通过；离线发布校验、mock 门禁 **9/9** 和 actionlint 再次通过。日志 `.cache/m4/github-repo-{candidate,offline,release-guards,actionlint}.log`。该阶段没有推送、触发远端运行或发布包。
 已授权首次同步：在当前 M4 feature 分支提交 `feat: 完成 M4 安全加固与 GitHub 发布准备`，将该提交及 M1–M3 历史首次推送到空仓库的 `origin/master` 并触发 CI；用户已确认执行；正式发布门禁保留，不创建发布标签。
-剩余：Node 持续长期结果、Dart/Noise/WS 长期覆盖、独立 Noise 与平台二进制审查、私密渠道实际启用/验证，以及未来仓库的 CI 执行、environment/包权限和正式发布；M3 延期项不变。
+剩余：Node 持续长期结果、Dart/Noise/WS 长期覆盖、独立 Noise 与平台二进制审查、私密渠道实际启用/验证、environment/包权限和正式发布；M3 延期项不变。
 
 ## 首次 GitHub Actions 执行
 
 提交 `f266b56` 的 [协议/安全 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38508880850) 与 [移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38508880939) 已实际触发，但首轮失败。
 协议 job 已通过 Node/Dart 检查、短跑覆盖率 fuzz、互通和生产依赖 audit；候选生成读取 Git 来源时被容器工作区 ownership 检查拒绝。两处 Android job 均在 Flutter action 安装前因缺少 jq 失败，未运行 Android 构建。
-修复只补齐 Android 容器 jq，并为需要 Git 来源的 CI/publish job 通过 GIT_CONFIG 环境变量信任准确的 github.workspace 路径，避免扩展到全部目录或依赖子进程 HOME；不更改 Git 来源/哈希校验逻辑。修复后的远端结果待复验。
+修复只补齐 Android 容器 jq，并为需要 Git 来源的 CI/publish job 通过 GIT_CONFIG 环境变量信任准确的 github.workspace 路径，避免扩展到全部目录或依赖子进程 HOME；不更改 Git 来源/哈希校验逻辑。后续结果见下。
 
 提交 `cba3ad4` 的 [协议 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509381539) 中 protocol-core **成功**，包含 clean 来源的 scoped 候选安装、真实 DSH 回归、9/9 发布门禁与产物上传；该 workflow 的 Android AOT 及 [移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509381630) 仍失败。
-Android setup action 默认请求已撤下的 SDK `tools` 包，报 Failed to find package 'tools'。进一步只将两处 packages 明确为 platform-tools、platforms;android-36、build-tools;36.0.0，与本机 Flutter 3.47.7 的 compileSdk=36 及已验证 SDK 一致；SDK/构建门禁未绕过，结果待复验。
+Android setup action 默认请求已撤下的 SDK `tools` 包，报 Failed to find package 'tools'。进一步只将两处 packages 明确为 platform-tools、platforms;android-36、build-tools;36.0.0，与本机 Flutter 3.47.7 的 compileSdk=36 及已验证 SDK 一致；SDK/构建门禁未绕过，后续结果见下。
 
 提交 `31ec871` 的 [协议 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509733494) 中 protocol-core 再次成功；SDK 组件安装也已通过，但 Android 构建命令在 Flutter SDK 的 Git ownership 检查处失败，[移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509733543) 同样失败。
-SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建步骤将准确的 github.workspace 和 action 导出的 FLUTTER_ROOT 纳入 Git protected config，不信任其他目录。源码所有权和校验逻辑不改，后续构建结果待复核。
+SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建步骤将准确的 github.workspace 和 action 导出的 FLUTTER_ROOT 纳入 Git protected config，不信任其他目录。源码所有权和校验逻辑不改。
+
+### 最终复核
+
+验证提交 `e4a1b328366e7ec7f88fd9c02ac472d18d6b1b19` 的 [协议/安全 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38510064374) 与 [移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38510063090) 均为 **success**。protocol-core、android-aot、移动 android job 全部通过；iOS 未满足手动执行条件，状态为 skipped，不能计为 iOS 验收通过。
+
+- 远端候选 `github-packages-0.1.0-candidates` 已下载至 `.cache/m4/ci-candidates-e4a1b32/`；manifest 来源为上述完整 SHA，sourceDirty=false，repository 与锁文件哈希正确，五个 `@brucezhang1993` 包的文件大小和 SHA-256 全部匹配。未发布到注册表。
+- 远端 APK `m3-android-local-signing-apk` 已下载至 `.cache/m4/ci-android-e4a1b32/dsh-remote-release.apk`；名称沿用 M3，源码来自上述 M4 验证提交。文件大小 **69109931 bytes**，SHA-256：`0f4528c254ab4be6d0204bce80c652f11fa5471eed2a2b289889b6dd68dca8bf`。本机 apksigner 与 zipalign 4 字节复核通过；仍为调试签名，未安装设备。
+- 完整 CI 日志保存在 `.cache/m4/ci-protocol-e4a1b32.log`、`.cache/m4/ci-mobile-e4a1b32.log`，APK 签名日志为 `.cache/m4/ci-android-e4a1b32-signature.log`。
+
+本次证据回填仅修改文档，以 `[skip ci]` 同步；以上 CI 和产物均对应 `e4a1b32`，不是后续文档提交。正式发布和延期验收项继续保留。
