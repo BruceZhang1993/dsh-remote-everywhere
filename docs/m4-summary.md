@@ -95,3 +95,6 @@ GitHub Packages 候选目录 `.cache/github-packages-0.1.0`，入口与环境配
 提交 `f266b56` 的 [协议/安全 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38508880850) 与 [移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38508880939) 已实际触发，但首轮失败。
 协议 job 已通过 Node/Dart 检查、短跑覆盖率 fuzz、互通和生产依赖 audit；候选生成读取 Git 来源时被容器工作区 ownership 检查拒绝。两处 Android job 均在 Flutter action 安装前因缺少 jq 失败，未运行 Android 构建。
 修复只补齐 Android 容器 jq，并为需要 Git 来源的 CI/publish job 通过 GIT_CONFIG 环境变量信任准确的 github.workspace 路径，避免扩展到全部目录或依赖子进程 HOME；不更改 Git 来源/哈希校验逻辑。修复后的远端结果待复验。
+
+提交 `cba3ad4` 的 [协议 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509381539) 中 protocol-core **成功**，包含 clean 来源的 scoped 候选安装、真实 DSH 回归、9/9 发布门禁与产物上传；该 workflow 的 Android AOT 及 [移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38509381630) 仍失败。
+Android setup action 默认请求已撤下的 SDK `tools` 包，报 Failed to find package 'tools'。进一步只将两处 packages 明确为 platform-tools、platforms;android-36、build-tools;36.0.0，与本机 Flutter 3.47.7 的 compileSdk=36 及已验证 SDK 一致；SDK/构建门禁未绕过，结果待复验。
