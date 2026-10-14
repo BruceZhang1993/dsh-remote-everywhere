@@ -2,7 +2,7 @@
 
 日期：2026-10-14。基线 `475ea94`，分支 `feature/20261013-m4Hardening`。
 状态：**接收加固、统一审计、本地 scoped 候选与 GitHub 发布流程已收口；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
-用户已创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，origin 已接入；远端为空、默认 master、Actions 已启用但没有运行记录。用户已明确授权提交 M4 并首次推送 origin/master 以启动 CI，执行结果待复核。
+用户已创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，origin 已接入；默认 master，Actions 已启用。用户明确授权后，M4 实现提交 `f266b56` 首次推送至 origin/master，远端 SHA 已核对一致。CI 首轮结果及修复见下方。
 远端只读核验：private vulnerability reporting 未启用，environment 列表为空，默认 workflow token 权限为 read。发布 job 的 packages:write 声明已准备；保护 environment/批准 SHA 与私密收件验收仍需落实，仓库创建不代表已可正式发布。
 
 ## M3 复核结论
@@ -59,7 +59,8 @@ M3 首版代码已提交，工作区在开工时干净。原有 Node **44/44**�
 | 覆盖率 fuzz | Node DR/TCP 600 秒、**147123** 次变异通过；报告、语料与源码哈希已记录 |
 | Android 外部供应链库存 | 91 artifacts / 86 坐标；artifact/POM 哈希齐全，OSV 快照 0，6 个直接许可证声明缺口保留 |
 | Android APK | 加固版本 release 构建通过，APK 签名与 zipalign 4 字节校验通过；仍为本地调试签名，未安装设备 |
-| 真机、iOS、真实模型、远端 CI | 未执行，延期项保留 |
+| 真机、iOS、真实模型 | 未执行，延期项保留 |
+| 远端 CI | 首轮已执行但失败；容器工具/ownership 修复结果待复核 |
 
 加固版本保存在 `.cache/m4/dsh-remote-release.apk`，M3 的 `.cache/mobile/dsh-remote-release.apk` 保留原版本与证据。
 APK 已因控制帧修复重新构建，SHA-256：`703ff02ea4cd4fb08bcda2062e7f2ee1f78ebd1d2bc83a12e4045f761a3229b8`；首批 hash 不再作为当前候选依据。
@@ -82,9 +83,15 @@ tools/run-limited.sh node tools/dependency-inventory.mjs
 ```
 
 `dart` 命令应指向已锁定的 Flutter 3.47.7 / Dart 3.13.5。互通与打包入口沿用开发手册。
-候选目录 `.cache/release-0.1.0`，来源与哈希见 `manifest.json`，当前 sourceDirty=true；本轮未提交、推送或发布。
+首轮本地候选目录 `.cache/release-0.1.0`，来源与哈希见 `manifest.json`，当时 sourceDirty=true；该本地验证阶段未提交、推送或发布，后续同步见远端执行记录。
 详细覆盖与库存见 [安全验证矩阵](security-validation.md)，安装、回滚和发布门禁见 [中文发布说明](release.md) / [English](release.en.md)。
 GitHub Packages 候选目录 `.cache/github-packages-0.1.0`，入口与环境配置见 [发布说明](release.md)；仓库归属已确认，正式发布仍需独立审查、保护 environment、批准 SHA 与有效披露渠道，不能由仓库创建推断已获发布授权。
-仓库接入复验：实际 scope 五包独立安装、诊断 CLI、两个真实同版 DSH 双向闭环与 MCP metadata 通过；离线发布校验、mock 门禁 **9/9** 和 actionlint 再次通过。日志 `.cache/m4/github-repo-{candidate,offline,release-guards,actionlint}.log`。没有推送、触发远端运行或发布包。
+仓库接入复验：实际 scope 五包独立安装、诊断 CLI、两个真实同版 DSH 双向闭环与 MCP metadata 通过；离线发布校验、mock 门禁 **9/9** 和 actionlint 再次通过。日志 `.cache/m4/github-repo-{candidate,offline,release-guards,actionlint}.log`。该阶段没有推送、触发远端运行或发布包。
 已授权首次同步：在当前 M4 feature 分支提交 `feat: 完成 M4 安全加固与 GitHub 发布准备`，将该提交及 M1–M3 历史首次推送到空仓库的 `origin/master` 并触发 CI；用户已确认执行；正式发布门禁保留，不创建发布标签。
 剩余：Node 持续长期结果、Dart/Noise/WS 长期覆盖、独立 Noise 与平台二进制审查、私密渠道实际启用/验证，以及未来仓库的 CI 执行、environment/包权限和正式发布；M3 延期项不变。
+
+## 首次 GitHub Actions 执行
+
+提交 `f266b56` 的 [协议/安全 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38508880850) 与 [移动 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38508880939) 已实际触发，但首轮失败。
+协议 job 已通过 Node/Dart 检查、短跑覆盖率 fuzz、互通和生产依赖 audit；候选生成读取 Git 来源时被容器工作区 ownership 检查拒绝。两处 Android job 均在 Flutter action 安装前因缺少 jq 失败，未运行 Android 构建。
+修复只补齐 Android 容器 jq，并为需要 Git 来源的 CI/publish job 通过 GIT_CONFIG 环境变量信任准确的 github.workspace 路径，避免扩展到全部目录或依赖子进程 HOME；不更改 Git 来源/哈希校验逻辑。修复后的远端结果待复验。

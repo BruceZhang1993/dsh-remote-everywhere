@@ -10,6 +10,10 @@ jobs:
   protocol-core:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: ${{ github.workspace }}
     container:
       image: ubuntu:24.04
       options: --memory=8g --memory-swap=12g
@@ -48,7 +52,7 @@ jobs:
       image: ubuntu:24.04
       options: --memory=8g --memory-swap=12g
     steps:
-      - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates python3 openjdk-21-jdk
+      - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates python3 jq openjdk-21-jdk
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:

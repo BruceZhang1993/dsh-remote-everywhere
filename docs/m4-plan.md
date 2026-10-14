@@ -36,7 +36,7 @@ Node/Dart 的 DR/Noise 字节格式和版本不变。旧端与新端可混用；
 ## 延期验收与发布条件
 
 - M3 的 Android ARM 真机、实际相机解码/网络切换、完整 UI、真实模型和 iOS/macOS 门禁仍见 [M3 总结](m3-summary.md)。未通过前不能宣称双端产品验收完成。
-- origin 已指向公开仓库 `BruceZhang1993/dsh-remote-everywhere`；远端为空，默认 master，Actions 已启用但无运行记录。候选与发布流从该仓库 owner/repo 获取 `@brucezhang1993` namespace；注册表权限、environment 审核/批准 SHA 和有效披露渠道须在正式发布前落实。
+- origin 已指向公开仓库 `BruceZhang1993/dsh-remote-everywhere`；实现提交 f266b56 已首次推送 master，CI 首轮实际执行但失败，正在复验容器工具/ownership 修复。候选与发布流从该仓库 owner/repo 获取 `@brucezhang1993` namespace；注册表权限、environment 审核/批准 SHA 和有效披露渠道须在正式发布前落实。
 - Node 注册表 audit 不覆盖 Dart/Flutter 平台插件、系统工具或自实现 Noise；公告清零不代替密码学第三方审查。
 - WS 分片与带载荷控制帧交错已专项修复/验证，详细矩阵与供应链边界见 [安全验证](security-validation.md)。
 - 独立 Noise 审查的实现范围、证据与报告要求已准备在 [交接材料](noise-review.md)，不是签署的第三方报告。
