@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { existsSync, readFileSync, writeFileSync, renameSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { createRemoteServer } from '@dsh-remote/core'
+import { createRemoteServer, deviceId } from '@dsh-remote/core'
 import { ProtocolError, KINDS, assertMethod } from '@dsh-remote/protocol'
 import { DeviceStore, DEVICE_CAPS } from './store.js'
 import { PairingHost } from './pairing.js'
@@ -10,6 +10,7 @@ import { HostStreams } from './streams.js'
 import { RemoteClient } from './client.js'
 import { WorkspaceOperations } from './operations.js'
 import { UploadReceiver } from './uploads.js'
+import { AuditLog } from './audit.js'
 
 const SESSION_METHODS = { list: 'list', search: 'search', create: 'create', fork: 'fork', rename: 'rename', prompt: 'prompt', cancel: 'cancel', 'queue.update': 'updateQueue', attachment: 'attachment', projections: 'projections' }
 
@@ -19,8 +20,6 @@ export class RemoteRuntime extends EventEmitter {
     this.ctx = ctx
     this.name = name
     this.port = port
-    this.store = new DeviceStore(directory)
-    this.pairing = new PairingHost(this.store, name)
     this.connections = new Map()
     this.clients = new Map()
     this.attempts = new Map()
@@ -29,11 +28,22 @@ export class RemoteRuntime extends EventEmitter {
     const tracked = existsSync(this.sessionTrackingPath) ? JSON.parse(readFileSync(this.sessionTrackingPath, 'utf8')) : []
     if (!Array.isArray(tracked) || tracked.length > 4096 || tracked.some(id => typeof id !== 'string' || id.length > 256)) throw new Error('invalid remote session tracking')
     this.remotelyDriven = new Set(tracked)
+    this.store = new DeviceStore(directory)
+    try { this.audit = new AuditLog(directory, () => ctx.logger?.error('remote audit unavailable; new operations are blocked')) }
+    catch (error) { this.store.close(); throw error }
+    this.pairing = new PairingHost(this.store, name, { audit: (event, data) => this.audit.record(event, data) })
+    this.pairing.on('paired', data => this.observe('pairing.completed', data))
+    this.pairing.on('cancelled', data => this.observe('pairing.cancelled', data))
     this.operations = new WorkspaceOperations(ctx, this)
     this.pairing.on('pending', value => this.emit('pairing', value))
     this.interactions = new InteractionBridge(ctx, sessionId => [...this.connections.entries()]
       .filter(([connection, value]) => connection.state === 'ready' && connection.negotiatedCaps.has('approval') && value.streams.sessions().has(sessionId))
-      .map(([connection]) => connection))
+      .map(([connection]) => connection), { audit: (event, data) => this.audit.record(event, data) })
+  }
+  observe(event, data, connection) {
+    if (this.audit.closed && this.stopping) return false
+    try { this.audit.record(event, data); return true }
+    catch { connection?.close(new ProtocolError('internal', 'remote audit unavailable')); return false }
   }
   async start() {
     for (const method of [...Object.values(SESSION_METHODS), 'follow', 'page', 'control']) {
@@ -54,10 +64,22 @@ export class RemoteRuntime extends EventEmitter {
         return sid ? this.pairing.claim(sid) : { verifyPeer: publicKey => Boolean(this.store.find(publicKey)) }
       },
     })
-    this.server.on('connection', connection => {
+    this.server.on('upgrade-rejected', data => this.observe('connection.rejected', { ...data, direction: 'inbound' }))
+    this.server.on('connection', (connection, { address } = {}) => {
+      const metadata = () => ({ address, direction: 'inbound',
+        ...(connection.noise.rs ? { deviceId: deviceId(connection.noise.rs) } : {}),
+        ...(connection.peerHello ? { deviceId: connection.peerHello.deviceId, role: connection.peerHello.role, kind: connection.peerHello.kind } : {}) })
+      connection.once('closed', error => this.observe('connection.closed', { ...metadata(), code: error.code, status: this.stopping ? 'normal-shutdown' : 'disconnected' }))
+      connection.on('request', data => this.observe('rpc.received', { ...metadata(), ...data }, connection))
+      connection.on('request-result', data => this.observe('rpc.completed', { ...metadata(), ...data }, connection))
+      if (!this.observe('connection.accepted', metadata(), connection)) return
+      connection.ready.then(() => {
+        if (!this.observe('connection.authenticated', metadata(), connection)) return
+        if (!connection.pairSid) this.attach(connection)
+      }).catch(error => this.observe('connection.rejected', { ...metadata(), code: error.code }))
       if (connection.pairSid) this.pairing.attach(connection)
-      else connection.ready.then(() => this.attach(connection)).catch(() => {})
     })
+    this.audit.record('runtime.started')
     return this
   }
   attach(connection) {
@@ -183,10 +205,13 @@ export class RemoteRuntime extends EventEmitter {
     return this.store.list().map(device => ({ ...device, online: online.has(device.deviceId) }))
   }
   revoke(id) {
+    // Emergency local revocation and resource teardown remain available if audit fails.
+    this.observe('device.revoke-requested', { deviceId: id })
     this.store.revoke(id)
     for (const [connection, value] of this.connections) if (value.device.deviceId === id) connection.close(new ProtocolError('unauthorized', 'device revoked'))
     this.clients.get(id)?.close()
     this.clients.delete(id)
+    this.observe('device.revoked', { deviceId: id })
   }
   async connect(id, endpoint) {
     const peer = this.store.devices.find(device => device.deviceId === id && !device.revokedAt && device.remoteCaps?.length)
@@ -195,12 +220,24 @@ export class RemoteRuntime extends EventEmitter {
     if (previous?.connection?.state === 'ready') return previous
     if (previous?.connecting) return previous.connecting
     const client = new RemoteClient(this.store, peer)
+    this.audit.record('connection.connecting', { deviceId: id, direction: 'outbound' })
+    client.on('disconnected', code => this.observe('connection.closed', { deviceId: id, direction: 'outbound', code, status: this.stopping ? 'normal-shutdown' : 'disconnected' }))
     this.clients.set(id, client)
     client.connecting = client.connect(endpoint).finally(() => { client.connecting = null })
-    try { return await client.connecting }
-    catch (error) { if (this.clients.get(id) === client) this.clients.delete(id); throw error }
+    try {
+      const connected = await client.connecting
+      this.audit.record('connection.authenticated', { deviceId: id, direction: 'outbound' })
+      return connected
+    }
+    catch (error) {
+      client.close()
+      this.observe('connection.rejected', { deviceId: id, direction: 'outbound', code: error.code })
+      if (this.clients.get(id) === client) this.clients.delete(id)
+      throw error
+    }
   }
   async close() {
+    this.stopping = true
     this.pairing.cancel()
     this.interactions.close()
     this.operations.close()
@@ -213,5 +250,7 @@ export class RemoteRuntime extends EventEmitter {
     await Promise.allSettled(uploads.map(upload => upload.settled()))
     this.store.close()
     this.clients.clear()
+    this.observe('runtime.stopped')
+    this.audit.close()
   }
 }

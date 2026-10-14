@@ -4,5 +4,5 @@
   "type": "module",
   "exports": "./src/index.js",
   "files": ["src"],
-  "dependencies": { "ws": "8.18.3" }
+  "dependencies": { "ws": "8.22.0" }
 }

@@ -5,10 +5,11 @@ const OUTCOMES = ['allowed-once', 'rejected', 'cancelled', 'unavailable']
 
 /** A borrowed request is never mutated. Only our exact local clone enters next. */
 export class InteractionBridge {
-  constructor(ctx, recipients, { timeoutMs = 120000 } = {}) {
+  constructor(ctx, recipients, { timeoutMs = 120000, audit = () => {} } = {}) {
     this.ctx = ctx
     this.recipients = recipients
     this.timeoutMs = timeoutMs
+    this.audit = audit
     this.pending = new Map()
     this.localRequests = new WeakSet()
     this.disposers = ['approval', 'question'].map(kind => {
@@ -34,11 +35,17 @@ export class InteractionBridge {
     const data = kind === 'approval'
       ? { approvalId: id, sessionId, toolName: request.toolName, callId: request.callId, reason: request.reason, deadline: Date.now() + this.timeoutMs }
       : { questionId: id, sessionId, questions: request.questions, deadline: Date.now() + this.timeoutMs }
+    this.audit('interaction.asked', { interactionId: id, sessionId, kind, toolName: request.toolName })
     return new Promise((resolve, reject) => {
       let settled = false
-      const finish = (value, by, error) => {
+      const finish = (value, by, error, actorDeviceId) => {
         if (settled) return
         settled = true
+        try { this.audit('interaction.decided', { interactionId: id, sessionId, kind, by, deviceId: actorDeviceId, ...(kind === 'approval' ? { outcome: value } : {}) }) }
+        catch {
+          value = 'cancelled'
+          error = kind === 'question' ? new ProtocolError('internal', 'remote audit unavailable') : null
+        }
         clearTimeout(timer)
         request.signal?.removeEventListener('abort', abort)
         this.pending.delete(id)
@@ -79,7 +86,7 @@ export class InteractionBridge {
         throw new ProtocolError('invalid-argument', 'invalid question answers')
       }
     }
-    item.finish(value, 'remote')
+    item.finish(value, 'remote', undefined, connection.peerHello.deviceId)
     return { ok: true }
   }
   list(connection, sessionId) {

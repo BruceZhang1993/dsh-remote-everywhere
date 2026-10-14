@@ -1,0 +1,79 @@
+# v0.1.0 候选、安装与发布
+
+当前仅生成本地候选，尚未发布。公开仓库 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) 已创建并接入 origin；首次提交/推送与 CI 已获用户授权，执行证据见 M4 记录。CI 按 GitHub Actions 编写，发布目标为 GitHub Packages 的 npm registry `https://npm.pkg.github.com`。
+源码包继续保留 alpha 版本与工作区名称。普通候选写入 `.cache/release-0.1.0`；GitHub Packages 候选写入 `.cache/github-packages-0.1.0`，只在 staging 改版本、包名、内部引用、Cordis patch 和发布元数据。
+候选 manifest 记录源提交、工作区是否有未提交改动、锁文件及五个 tarball 的 SHA-256。当前 sourceDirty=true，不代表已提交的发布标签。
+
+## 本地门禁
+
+```bash
+tools/run-limited.sh pnpm check
+tools/run-limited.sh pnpm test
+tools/run-limited.sh pnpm test:release-candidate
+# 只生成和测试本地候选，不推送或发布。
+tools/run-limited.sh pnpm test:release-candidate --github-packages BruceZhang1993/dsh-remote-everywhere
+tools/run-limited.sh node tools/publish-packages.mjs
+```
+
+候选测试命令生成五个 `0.1.0` 候选，在临时消费者中禁用 install scripts 安装，并执行诊断 CLI 和两个真实 DSH 的双向会话、审批、文件/终端回归。
+DSH 支持基线为 **0.1.7-rc.2**，Node ≥22.19.0。宿主服务须同版，不能把 rc.1/rc.2 混装结果当兼容性验证。
+Linux 管理 socket 已验证；Windows/macOS 管理入口尚未验收。
+
+## 隔离安装与回滚
+
+在具有同版 DSH 的新测试 profile 中同时安装 protocol、core、tunnel、cli 和插件候选 tarball；仓库入口会自动完成这一独立安装。
+测试入口从候选 manifest 选择五个 tarball，一并安装，不向 GitHub Packages 查询或发布。`publish-packages.mjs` 默认只做离线来源、锁文件、顺序、大小和哈希校验。
+GitHub Packages 要求包名使用所属账号的小写 scope，因此候选名称为：
+
+```bash
+@brucezhang1993/dsh-remote-protocol
+@brucezhang1993/dsh-remote-core
+@brucezhang1993/dsh-remote-tunnel
+@brucezhang1993/dsh-remote-cli
+@brucezhang1993/dsh-remote-everywhere
+```
+
+本地实际执行安装/测试时仍须套 `tools/run-limited.sh`。保留现用 profile、锁文件和设备状态，先在隔离 profile 验证；不要覆盖 identity.key 或 devices.json。
+回滚时停止候选实例、恢复原 profile 与其锁文件/旧 tarball，保留原身份和信任记录。候选不改变 DR v1 或设备表格式；审计日志由新运行时管理，旧版本可能不保留新增审计事件。
+
+配对仍需双方人工核对六位 SAS，默认权限为 session/stream/approval；files/terminal/admin 需显式授予，终端和写文件仍逐次审批。
+更新隧道地址必须保持固定公钥。撤销在被控端本机管理 CLI 执行；具体命令见原安装手册。
+核心通信格式兼容旧端，但新增接收保护只在升级端生效。先升级被控端插件，再升级控制端插件/App；双方都升级后才具有双向加固。
+
+## 审计和故障行为
+
+每个运行时拥有 `remote/audit.jsonl`；当前和 `.previous` 各最多 1 MiB，单条最多 4096 bytes，追加前轮转，文件权限 0600。
+记录连接/鉴权、RPC 状态、配对/吊销、人工交互和敏感操作元数据，排除参数、响应正文、身份密钥、二维码/sid/SAS、地址 URL 和异常消息。
+审计不是持久化业务数据库或防篡改账本；没有逐条 fsync 保证，宿主崩溃仍可能丢失未落盘记录。
+
+文件不安全、被替换或写入失败时，审计锁定失败状态并告警，新的远程操作失败关闭，不自动重试写入；本机吊销与资源关闭仍可执行。
+操作已执行后若结果审计失败，调用方可能收到失败/未知结果，不能据此重发写入。修复目录/磁盘后显式重启运行时，不提供隐式恢复。
+旧审计文件若超过 1 MiB 或权限不符合要求，应先由维护者归档并修正；不会自动丢弃旧证据。
+
+## GitHub Actions 与发布门禁
+
+正式版本还需要独立 Noise 审查、完整供应链复核、有效私密披露渠道、真实远端 CI 结果，以及已确认的仓库归属。仓库归属与首次代码同步授权已确认，远端 CI 成功仍须实际执行验证，workflow 已配置不代表这些条件已满足。
+Android/iOS 最终产品验收仍按 M3 延期清单执行；此候选不宣称双端产品已验收。
+
+- `ci.yml`：Node/Dart、安全回归、互通、覆盖率 fuzz 短跑、候选独立安装与 Android AOT。
+- `mobile.yml`：GitHub 托管 Linux 容器检查 Flutter 并构建 Android；iOS 只在手动明确允许无 systemd 限额的 macOS 构建时运行。
+- `fuzz.yml`：每天一次 900 秒/最多 100 万迭代的 Node 解析器覆盖率引导 fuzz，保存有界语料及报告；每次均有超时和容器限额。
+- `publish.yml`：只手动 dispatch，必须选 `v0.1.0` 标签。先重跑同一标签的 CI 与 Android App 门禁，再下载该次 CI 的确切 tarball，依序发布 `next`，不重新打包、不切换 `latest`。
+
+维护者仍须配置 `github-packages` environment 的审核人与标签保护，避免直接执行发布。完成独立审查、平台供应链复核及披露渠道验证后，将 environment 变量 `DSH_RELEASE_APPROVED_SHA` 设为审核过的**完整提交 SHA**，记录审查证据；变量未设置或不匹配时发布脚本拒绝执行。审批针对具体候选/哈希/账号/registry/tag，不能只凭绿灯放行。
+仅发布 job 拥有 `packages:write`，使用该仓库 `GITHUB_TOKEN`；token 仅在发布步骤传入，不写进源码或候选包。manifest 必须 clean、与标签 SHA/仓库/锁文件一致。
+发布顺序为 protocol → core → tunnel → cli → plugin。预先查询全部现有版本：只有 E404 视为缺失，鉴权/网络错误直接停止；已有版本须与本地 SHA-512 完全一致。每个包发布后核对注册表完整性再继续；中途失败保留已发布包，可对同一候选重新验证续发，不自动删除或回放不匹配的版本。
+注册表不可用/短暂不可见时该次发布失败，维护者检查后再续发。正式发布后的消费者安装验证须另行记录，不能用上传前的 tarball 测试代替。
+
+## 注册表安装（发布后）
+
+即使包公开，GitHub npm registry 安装仍需要认证；维护者须设置并核验包的可见性，首次发布默认私有。参见 [GitHub npm registry 官方说明](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry)。
+在隔离 profile 的 `.npmrc` 写入以下配置，scope 使用仓库账号的小写形式 `brucezhang1993`，保留 token 的环境变量引用：
+
+```ini
+@brucezhang1993:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+在本机环境安全提供具有 `read:packages` 的 PAT classic 后安装 `@brucezhang1993/dsh-remote-everywhere@0.1.0`，禁用 install scripts。profile 的 `dsh.profile.bundles` 也必须使用该完整 scoped 包名，不能沿用无 scope 的源码名称。源包和注册表包使用同一 DR v1；升级 profile 时更新包名和锁文件，保留原 remote 状态目录。
+账户/组织可禁用包权限自动继承，需实际核验 Actions 安装权限。诊断 CLI `@brucezhang1993/dsh-remote-cli` 可单独安装；插件与诊断包都提供 `dsh-remote` 可执行名，放在不同 profile 中使用。

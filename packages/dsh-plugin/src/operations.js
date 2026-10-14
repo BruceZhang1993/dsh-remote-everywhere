@@ -1,6 +1,4 @@
 import { randomBytes } from 'node:crypto'
-import { appendFileSync, statSync, renameSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { scopeTarget } from '@deepseek-ai/dsh-scope'
 import { ProtocolError } from '@dsh-remote/protocol'
@@ -21,9 +19,8 @@ export class WorkspaceOperations {
     return { root, target, fs, cwd: header.cwd }
   }
   audit(data) {
-    const path = join(this.runtime.store.directory, 'audit.jsonl')
-    if (existsSync(path) && statSync(path).size >= 1024 * 1024) renameSync(path, `${path}.previous`)
-    appendFileSync(path, `${JSON.stringify({ time: Date.now(), ...data })}\n`, { mode: 0o600 })
+    const { action, ...metadata } = data
+    this.runtime.audit.record(`operation.${action}`, metadata)
   }
   async approve(connection, params, signal) {
     if (!['files.write', 'terminal.exec'].includes(params.method)) throw new ProtocolError('invalid-argument', 'invalid operation')

@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-10-14 — M4 GitHub 发布准备与覆盖率 fuzz（未发布）
+
+- 后续接入：用户创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，本地 origin 已配置；远端为空、默认 master、Actions 开启但无运行。候选与安装示例改用实际 `@brucezhang1993` scope；初始提交/推送、保护 environment 和私密报告启用待落实。
+- 用户暂缓远程仓库创建；CI 按 GitHub Actions、发布按 GitHub Packages 准备，未推送或执行远端 workflow。
+- owner-scoped 五包 staging 候选同步重写内部引用和 Cordis patch，保留源码 alpha 名称/版本；独立消费者和真实 DSH 双向回归通过。
+- 手动标签发布、同次 CI 产物、干净来源/锁文件/哈希/批准 SHA、next tag、依赖顺序与 SHA-512 续发门禁；新增 mock registry 拒绝路径回归。
+- 增加 V8 覆盖率反馈语料保留与每日有界 fuzz workflow；私密报告表单和独立 Noise 审查交接材料已准备。正式发布、有效报告渠道与独立/平台审查仍未完成。
+
+## 2026-10-13 — M3 开发复核通过，M4 首批加固（未发布）
+
+- 后续收口：运行时统一审计、追加前 1 MiB 轮转、白名单/文件安全/失败闭合回归；本机吊销与 teardown 不受审计失败阻塞。
+- 复现并修复 Dart SDK 分片与带载荷 ping 交错时丢前片，验证正文及 masked pong；放大变异/分块压力到 340000 样本。
+- 握手洪泛返回 429，补连接容量恢复和真实宿主 symlink 围栏验证；Node 68/68、Dart 58/58、Flutter 19/19。
+- 添加 LICENSE、披露策略、双语发布/回滚文档和五个 0.1.0 staging 候选，禁用 install scripts 独立安装通过。来源为未提交工作区，未发布；独立/平台审查、长期 fuzz、有效披露渠道和远端门禁仍待完成。
+
+- M3 实现提交 `475ea94` 的本地门禁重新通过；用户确认按开发完成进入 M4，保留真机、iOS/macOS、真实模型及完整 UI 验收。
+- Dart 接收层在完整消息组装前检查帧头、累计字节与 1024 个数据分片，原始 socket 仍由连接 owner 管理。
+- Node 两端与隧道就绪探针增加分片/缓冲块数量上限；升级 `ws` 至 8.22.0、`ajv` 至 8.18.0，生产依赖 audit 从 3 条公告降为 0。
+- 增加写重放、跨连接密文、协议/角色/身份混淆与两端小分片攻击回归，以及 Node/Dart 共 24000 个可复现随机样本。
+- 开发步骤、验证和未完成的审计/发布条件见 [M4 记录](docs/m4-summary.md)。未提交本轮变更、推送或发布。
+
+---
+
 ## 2026-10-12 — M1 底座完成（未发布）
 
 - 建立 `packages/{protocol,core,tunnel,cli}`、纯 Dart 参考包与 workspace 锁文件，核心包禁止宿主依赖。

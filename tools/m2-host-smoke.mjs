@@ -20,20 +20,23 @@ const clients = []
 const stores = []
 const liveModel = process.env.M2_LIVE_MODEL
 const liveProvider = process.env.M2_LIVE_PROVIDER
+const pluginRoot = process.env.DSH_PLUGIN_PACKAGE_ROOT ?? join(root, 'packages/dsh-plugin')
+const pluginName = JSON.parse(readFileSync(join(pluginRoot, 'package.json'), 'utf8')).name
 function profile(label) {
   const home = join(directory, label)
   const profile = join(home, 'profiles', 'remote-test')
   mkdirSync(join(profile, 'node_modules'), { recursive: true, mode: 0o700 })
   mkdirSync(join(home, 'workspace'), { recursive: true, mode: 0o700 })
   symlinkSync(join(modules, '@deepseek-ai'), join(profile, 'node_modules', '@deepseek-ai'))
-  symlinkSync(process.env.DSH_PLUGIN_PACKAGE_ROOT ?? join(root, 'packages/dsh-plugin'), join(profile, 'node_modules', 'dsh-remote-everywhere'))
-  const bundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-remote-everywhere']
+  mkdirSync(join(profile, 'node_modules', pluginName, '..'), { recursive: true })
+  symlinkSync(pluginRoot, join(profile, 'node_modules', pluginName))
+  const bundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', pluginName]
   if (liveProvider === 'workbuddy') {
     if (!process.env.M2_WORKBUDDY_PLUGIN) throw new Error('M2_WORKBUDDY_PLUGIN is required for the existing WorkBuddy model provider')
     symlinkSync(process.env.M2_WORKBUDDY_PLUGIN, join(profile, 'node_modules', 'dsh-workbuddy-connect'))
     bundles.push('dsh-workbuddy-connect')
   }
-  writeFileSync(join(profile, 'package.json'), JSON.stringify({ name: `dsh-m2-${label}`, private: true, dependencies: { 'dsh-remote-everywhere': `file:${root}/packages/dsh-plugin`, ...(liveProvider === 'workbuddy' ? { 'dsh-workbuddy-connect': `file:${process.env.M2_WORKBUDDY_PLUGIN}` } : {}) }, dsh: { profile: { bundles } } }))
+  writeFileSync(join(profile, 'package.json'), JSON.stringify({ name: `dsh-m2-${label}`, private: true, dependencies: { [pluginName]: `file:${pluginRoot}`, ...(liveProvider === 'workbuddy' ? { 'dsh-workbuddy-connect': `file:${process.env.M2_WORKBUDDY_PLUGIN}` } : {}) }, dsh: { profile: { bundles } } }))
   writeFileSync(join(profile, 'cordis.patch.yml'), `- id: agent-default-model\n  config:\n    provider: ${liveProvider ?? 'm2-fixture'}\n    model: ${liveModel ?? 'fixture'}\n${liveModel ? '    reasoningEffort: low\n' : ''}${process.env.M2_SEARCH_DISABLED === '1' ? '' : '- id: session-query-sqlite\n  config:\n    path: \":memory:\"\n    openAt: first-search\n'}- id: remote-everywhere\n  config:\n    cloudflared: ${join(root, 'spikes/tunnel/cloudflared')}\n- id: session-title-llm\n  disabled: true\n- insert:\n    - id: m2-test-model\n      name: ${join(root, 'tools/fixtures/m2-host.js')}\n`)
   return { home, profile, state: join(profile, 'remote'), workspace: join(home, 'workspace') }
 }
@@ -285,6 +288,8 @@ try {
   ])
   assert.equal(mcpResponses.length, 4)
   assert(mcpResponses.every(message => message.result && !message.result.isError))
+  const pluginInfo = JSON.parse(readFileSync(join(pluginRoot, 'package.json'), 'utf8'))
+  assert.deepEqual(mcpResponses.find(message => message.id === 1).result.serverInfo, { name: pluginInfo.name, version: pluginInfo.version })
   const mcpRun = JSON.parse(mcpResponses.find(message => message.id === 4).result.content[0].text)
   assert.equal(mcpRun.requestId, 'm2-mcp-run')
   assert(mcpRun.records.length)
@@ -315,6 +320,12 @@ try {
     const read = await ab.request('files.read', { sessionId: first.sessionId, path: write.path })
     assert.equal(Buffer.from(read.data, 'base64').toString(), write.content)
     await assert.rejects(ab.request('files.read', { sessionId: first.sessionId, path: '..' }), { code: 'unauthorized' })
+    const outside = join(directory, 'outside-workspace.txt')
+    writeFileSync(outside, 'synthetic private fixture')
+    symlinkSync(outside, join(b.workspace, 'outside-link.txt'))
+    await assert.rejects(ab.request('files.read', { sessionId: first.sessionId, path: 'outside-link.txt' }), { code: 'unauthorized' })
+    await assert.rejects(ab.request('operation.prepare', { method: 'files.write', sessionId: first.sessionId, path: 'outside-link.txt', content: 'must not overwrite' }), { code: 'unauthorized' })
+    assert.equal(readFileSync(outside, 'utf8'), 'synthetic private fixture')
     const exec = { sessionId: first.sessionId, cwd: '.', command: 'printf M2_TERMINAL_OK' }
     const executeGrant = await ab.request('operation.prepare', { method: 'terminal.exec', ...exec })
     const result = await ab.request('terminal.exec', { ...exec, approvalId: executeGrant.approvalId })

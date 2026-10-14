@@ -8,9 +8,12 @@
     "check": "node tools/check.mjs && tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 tools/protocol-consumer.ts",
     "generate": "node tools/generate-types.mjs",
     "test": "node --test --test-concurrency=1 --test-timeout=15000 packages/*/test/*.test.js",
+    "test:security": "node --test --test-concurrency=1 --test-timeout=15000 packages/core/test/security.test.js packages/protocol/test/fuzz.test.js",
+    "test:fuzz-coverage": "node tools/coverage-fuzz.mjs",
     "test:interop": "node tools/interop.mjs",
     "test:tunnel": "node tools/tunnel-smoke.mjs",
     "test:package": "bash tools/package-smoke.sh",
+    "test:release-candidate": "bash tools/package-smoke.sh --release-candidate",
     "remote": "node packages/cli/src/index.js"
   },
   "devDependencies": {

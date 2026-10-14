@@ -26,16 +26,16 @@ export async function createRemoteServer({ keyPair, peerPublicKey, connectionOpt
   const sockets = new Set()
   let stopping = false
   let closing
-  const accept = (carrier, options = {}) => {
+  const accept = (carrier, options = {}, address) => {
     if (stopping || connections.size >= maxConnections) { carrier.close(); return }
     const connection = new SecureConnection(carrier, { ...connectionOptions, ...options, initiator: false, keyPair, peerPublicKey })
     connections.add(connection)
     connection.once('closed', error => { connections.delete(connection); owner.emit('disconnected', error.code) })
     connection.ready.catch(error => owner.emit('rejected', error.code))
-    owner.emit('connection', connection)
+    owner.emit('connection', connection, { address })
   }
   const server = transport === 'tcp'
-    ? net.createServer(socket => accept(new TcpTransport(socket)))
+    ? net.createServer(socket => accept(new TcpTransport(socket), {}, socket.remoteAddress))
     : http.createServer((request, response) => {
       response.writeHead(request.url === '/health' ? 200 : 404, { 'content-type': 'application/json', 'cache-control': 'no-store' })
       response.end(request.url === '/health' ? '{"ok":true}' : '{"error":"not-found"}')
@@ -49,16 +49,20 @@ export async function createRemoteServer({ keyPair, peerPublicKey, connectionOpt
   if (transport === 'ws') {
     server.headersTimeout = 10000
     server.requestTimeout = 10000
-    wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WIRE_BYTES, perMessageDeflate: false })
+    wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WIRE_BYTES, maxFragments: 1024, maxBufferedChunks: 1024, perMessageDeflate: false })
     server.on('upgrade', (request, socket, head) => {
       let options = {}
       try { options = connectionOptionsForRequest?.(request) ?? {} }
-      catch { socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return }
+      catch (error) {
+        owner.emit('upgrade-rejected', { address: socket.remoteAddress, code: error?.code ?? 'internal' })
+        socket.end(`HTTP/1.1 ${error?.code === 'busy' ? '429 Too Many Requests' : '403 Forbidden'}\r\nConnection: close\r\n\r\n`); return
+      }
       if (request.url?.split('?')[0] !== '/remote/ws' || stopping || connections.size >= maxConnections) {
+        owner.emit('upgrade-rejected', { address: socket.remoteAddress, code: connections.size >= maxConnections ? 'busy' : 'not-found' })
         socket.end(`HTTP/1.1 ${connections.size >= maxConnections ? '429 Too Many Requests' : '404 Not Found'}\r\nConnection: close\r\n\r\n`)
         return
       }
-      wss.handleUpgrade(request, socket, head, ws => accept(new WebSocketTransport(ws), options))
+      wss.handleUpgrade(request, socket, head, ws => accept(new WebSocketTransport(ws), options, socket.remoteAddress))
     })
   }
   await new Promise((resolve, reject) => {

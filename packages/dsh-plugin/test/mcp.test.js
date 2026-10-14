@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { Readable, Writable } from 'node:stream'
 import { mcpMessages, serveMcp } from '../src/mcp.js'
+import packageInfo from '../package.json' with { type: 'json' }
 
 test('MCP framing rejects oversized unterminated input and preserves split multibyte messages', async () => {
   const utf8 = Buffer.from('{"text":"中文"}\n{"id":1}\n')
@@ -20,5 +21,6 @@ test('MCP keeps stdout valid JSON-RPC after malformed requests and advertises re
   assert.equal(values.length, 4)
   assert.equal(values[0].error.code, -32700)
   assert.equal(values[1].error.code, -32600)
+  assert.deepEqual(values.find(value => value.id === 1).result.serverInfo, { name: packageInfo.name, version: packageInfo.version })
   assert(values.find(value => value.id === 2).result.tools.some(tool => tool.name === 'remote_run'))
 })

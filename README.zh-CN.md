@@ -6,8 +6,8 @@
 其他已启用该插件的 DSH 实例，也能接受它们的连接。同一套协议由 Android / iOS 原生 Flutter App
 实现，因此手机可以配对任意开启该能力的被控端。被控端支持免费、一键开启的公网隧道。
 
-> **状态：pre-alpha，M2 已完成本地验收，M3 移动端开发中。** Flutter 控制端已进入
-> [apps/mobile](apps/mobile/README.md)，真机验收按用户要求暂缓，iOS 编译和发布仍待完成。
+> **状态：pre-alpha，M3 首版开发实现完成，M4 安全加固进行中。** Flutter 控制端位于
+> [apps/mobile](apps/mobile/README.md)，见 [M3 证据与延期项](docs/m3-summary.md) 和 [M4 首批记录](docs/m4-summary.md)。真机验收按用户要求暂缓，iOS 编译、移动端真实模型验收和发布仍待完成。
 > 实际进度以 [docs/roadmap.md](docs/roadmap.md) 为准。
 
 ## 解决什么问题
@@ -21,6 +21,8 @@ DSH 在本地和自带 Web GUI 中很好用，但缺少以下能力：
 本项目用一个插件、一套协议补齐这些能力，且**不引入账号体系**、**不让明文经过第三方**。
 
 ## 文档
+
+M4 的本地候选、安装/回滚和 GitHub Packages 发布流见 [发布说明](docs/release.md)，安全披露策略见 [SECURITY.md](SECURITY.md)。GitHub Actions 配置已准备；远程仓库 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) 已创建并接入 origin；首次代码同步与 CI 已获用户授权；执行结果见 M4 记录，候选不代表注册表已发布。
 
 M1 诊断入口：`pnpm install --frozen-lockfile` 后运行 `pnpm remote` 查看用法。公钥绑定、
 两进程加密通信、事件恢复和可选公网隧道见 [开发手册](docs/development.md#301-两进程诊断-cli)。

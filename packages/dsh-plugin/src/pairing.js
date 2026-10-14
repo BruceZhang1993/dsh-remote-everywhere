@@ -6,10 +6,11 @@ import { DEFAULT_CAPS, validCaps } from './store.js'
 
 /** Only the owner can begin/confirm. A slot accepts one handshake, then expires. */
 export class PairingHost extends EventEmitter {
-  constructor(store, name) { super(); this.store = store; this.name = name }
+  constructor(store, name, { audit = () => {} } = {}) { super(); this.store = store; this.name = name; this.audit = audit }
   begin(endpoint, caps = DEFAULT_CAPS) {
     validCaps(caps)
     this.cancel()
+    this.audit('pairing.opened')
     const slot = { sid: randomBytes(16).toString('base64url'), exp: Date.now() + 180000, caps, state: 'open' }
     this.slot = slot
     this.timer = setTimeout(() => this.cancel(), 180000)
@@ -19,6 +20,7 @@ export class PairingHost extends EventEmitter {
     const slot = this.slot
     if (!slot || slot.sid !== sid || slot.state !== 'open' || Date.now() >= slot.exp) throw new ProtocolError('unauthorized', 'pairing is not open')
     slot.state = 'claimed'
+    this.audit('pairing.claimed')
     return { pairSid: sid, caps: ['admin'], handshakeTimeoutMs: 10000, requestTimeoutMs: 180000, verifyPeer: () => this.slot === slot && Date.now() < slot.exp }
   }
   attach(connection) {
@@ -42,9 +44,11 @@ export class PairingHost extends EventEmitter {
       confirming = true
       await slot.local
       if (signal.aborted || this.slot !== slot || Date.now() >= slot.exp || connection.state !== 'ready') throw new ProtocolError('unauthorized', 'pair confirmation expired')
+      this.audit('pairing.grant', { deviceId: slot.peer.deviceId })
       const record = this.store.grant(connection.peerPublicKey, slot.peer.name, slot.caps)
       slot.state = 'consumed'
       clearTimeout(this.timer)
+      this.emit('paired', { deviceId: record.deviceId })
       return { ok: true, deviceId: deviceId(this.store.keyPair.publicKey), caps: record.caps }
     })
   }
@@ -55,6 +59,7 @@ export class PairingHost extends EventEmitter {
   confirm(sas) {
     const slot = this.slot
     if (!slot || slot.state !== 'confirming' || sas !== slot.sas || Date.now() >= slot.exp) throw new ProtocolError('unauthorized', 'local SAS mismatch')
+    this.audit('pairing.local-confirmed', { deviceId: slot.peer.deviceId })
     slot.resolveLocal()
     return { ok: true }
   }
@@ -64,5 +69,6 @@ export class PairingHost extends EventEmitter {
     this.slot = null
     slot?.rejectLocal?.(new ProtocolError('cancelled', 'pairing cancelled'))
     slot?.connection?.close()
+    if (slot && slot.state !== 'consumed') this.emit('cancelled', { deviceId: slot.peer?.deviceId })
   }
 }

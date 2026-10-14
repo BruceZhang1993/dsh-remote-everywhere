@@ -193,7 +193,7 @@ tools/run-limited.sh pnpm check
 - [x] M1：仓库边界检查（确保 `packages/{protocol,core,tunnel}` 不 import `@deepseek-ai/*`）
 - [x] M2：插件安装与回滚见 [m2-install.md](m2-install.md)
 - [x] M3：Flutter 本地验证和 macOS CI 执行入口见 [apps/mobile/README.md](../apps/mobile/README.md)；真机验收暂缓，CI 配置不等于已执行
-- [ ] M4：发布流程（npm publish、版本号规则、双语文档校验）
+- [x] M4：GitHub Packages 候选与手动发布流程、版本/来源校验、双语文档；远程执行与实际发布延期
 
 ## M2 复验
 
@@ -213,3 +213,41 @@ tools/run-limited.sh bash -lc 'DSH_HOST_MODULE_ROOT="$PWD/.cache/m2-runtime/node
 
 第三条使用隔离真实 DSH 与确定性模型，验证 mobile-controller 配对、会话归并、审批/提问、恢复和吊销；不使用真机或真实模型账号。iOS 只能在 macOS/Xcode 验证，详见移动端 README 的显式执行入口。
 在第三条 Node 命令前添加 `M3_TUNNEL=1` 可启用公网 WSS；宿主重启后重新获取隧道地址，仍固定原公钥。验收状态见 [M3 总结](m3-summary.md)。
+
+## M4 安全加固
+
+首批状态和依赖公告复核见 [M4 记录](m4-summary.md)，后续审计与发布步骤见 [M4 计划](m4-plan.md)。
+
+```bash
+tools/run-limited.sh pnpm test:security
+tools/run-limited.sh bash -lc 'cd packages/core/dart && /home/bruce/Android/flutter/bin/dart test test/bounded_websocket_test.dart'
+tools/run-limited.sh pnpm audit --prod
+tools/run-limited.sh pnpm test:release-candidate
+tools/run-limited.sh node tools/dependency-inventory.mjs
+```
+
+Node 安全/fuzz 和 Dart 接收/fuzz 用例也会由各自默认测试执行。audit 只表示注册表对当前生产依赖的公告结果，不替代平台依赖或密码学审查。
+本地发布候选见 [release.md](release.md)，不改源码 alpha 版本、不自动发布。`DSH_FUZZ_ROUNDS=100000` 可在同一 scope 中放大固定 seed 样本；允许范围 1000..1000000，重任务仍串行。
+
+### M4 GitHub Packages 与覆盖率 fuzz
+
+公开远程仓库 `BruceZhang1993/dsh-remote-everywhere` 已接入 origin，默认 master；CI 的 owner/repo 从 `GITHUB_REPOSITORY` 获取。本地现按真实仓库 metadata 生成 `@brucezhang1993` 候选；此前 `local-validation` 仅用于隔离验证。
+
+```bash
+tools/run-limited.sh pnpm test:release-candidate --github-packages BruceZhang1993/dsh-remote-everywhere
+tools/run-limited.sh node tools/publish-packages.mjs # 默认离线校验
+tools/run-limited.sh node --test --test-concurrency=1 tools/test-release.mjs # mock registry，无真实发布
+tools/run-limited.sh env DSH_FUZZ_SECONDS=600 pnpm test:fuzz-coverage
+```
+
+覆盖率入口用 V8 precise block ranges 反馈保留新输入；语料最多 512 条、每条 1024 字节，运行最多 3600 秒/100 万迭代。报告和 base64 语料在 `.cache/coverage-fuzz`，输入只含模拟协议数据。已有语料会重新测量当前源码覆盖，报告包含源码哈希；报告中的执行范围数不是整体覆盖率百分比。默认 60 秒，CI 短跑 10 秒，每日 scheduled job 900 秒；Node DR/TCP 以外的长期覆盖未完成。
+发布 helper 只有 `--publish` 才写注册表，并检查干净工作区、同仓库 Actions/标签与已批准 SHA；正式运行配置见 [发布说明](release.md)。iOS/macOS 仍要求单独明确授权运行无 systemd 限额的构建。
+
+Android 原生供应链库存按已解析 releaseRuntimeClasspath 生成；有现成 build 和 Gradle 缓存时可离线运行：
+
+```bash
+tools/run-limited.sh bash -lc 'cd apps/mobile/android && JAVA_HOME=/usr/lib/jvm/java-21-openjdk ./gradlew --offline --no-daemon --max-workers=2 -I ../../../tools/android-inventory.gradle :app:dshReleaseInventory -PdshInventoryPath="$PWD/../../../.cache/m4/android-artifacts.json"'
+tools/run-limited.sh python3 tools/android-inventory.py --fetch-poms --osv
+```
+
+后者从 Google Maven/Maven Central 补齐缺失 POM（有界 4 并发），记录外部 artifact/POM 哈希、许可证声明及 Maven OSV 公告快照，不替代平台二进制或许可证独立审查；本地 Flutter 插件 project 单独列出并排除，OSV 查询失败不会记为零公告。Apple 依赖仍需要 Xcode 实际解析清单。独立密码学交接见 [Noise 审查范围](noise-review.md)，当前没有第三方签署报告。

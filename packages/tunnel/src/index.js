@@ -24,7 +24,7 @@ export async function probeTunnel(url, { signal }) {
   endpoint.protocol = 'wss:'
   await new Promise((resolve, reject) => {
     let done = false
-    const socket = new WebSocket(endpoint, { handshakeTimeout: 5000, maxPayload: 65551, perMessageDeflate: false })
+    const socket = new WebSocket(endpoint, { handshakeTimeout: 5000, maxPayload: 65551, maxFragments: 1024, maxBufferedChunks: 1024, perMessageDeflate: false })
     const finish = error => {
       if (done) return
       done = true

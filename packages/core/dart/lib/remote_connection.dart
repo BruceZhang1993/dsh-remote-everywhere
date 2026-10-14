@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 
 import 'frame.dart';
+import 'bounded_websocket.dart';
 import 'noise_xx_blake2s.dart';
 
 const _applicationLimit = 4 * 1024 * 1024;
@@ -300,9 +301,10 @@ Future<(WebSocket, Socket)> _openSocket(Uri uri, HttpClient client) async {
   try {
     return (
       WebSocket.fromUpgradedSocket(
-        socket,
+        BoundedWebSocketSocket(socket),
         serverSide: false,
         compression: CompressionOptions.compressionOff,
+        maxPayloadLength: maxWireBytes,
       ),
       socket,
     );
@@ -353,8 +355,17 @@ class RemoteConnection {
       _receive,
       onError: (Object _) =>
           close(const RemoteException('transport/lost', 'WebSocket failed')),
-      onDone: () =>
-          close(const RemoteException('transport/lost', 'WebSocket closed')),
+      onDone: () => close(
+        RemoteException(
+          {
+                WebSocketStatus.protocolError,
+                WebSocketStatus.invalidFramePayloadData,
+              }.contains(_socket.closeCode)
+              ? 'invalid-argument'
+              : 'transport/lost',
+          'WebSocket closed',
+        ),
+      ),
     );
     _deadline = Timer(
       handshakeTimeout,

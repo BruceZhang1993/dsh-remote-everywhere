@@ -221,10 +221,17 @@ export class SecureConnection extends EventEmitter {
   dispatch(request) {
     const registered = this.handlers.get(request.m)
     if (this.active.has(request.id)) { this.close(new ProtocolError('invalid-argument', 'duplicate active RPC id')); return }
-    const replyError = error => this.sendFrame(KINDS.ERR, { id: request.id, e: {
+    const metadata = { requestId: request.id, method: registered ? request.m : 'unknown' }
+    this.emit('request', metadata)
+    if (this.state !== 'ready') return
+    const replyError = error => {
+      this.emit('request-result', { ...metadata, status: 'failed', code: error instanceof ProtocolError ? error.code : 'internal' })
+      if (this.state !== 'ready') return
+      return this.sendFrame(KINDS.ERR, { id: request.id, e: {
       code: error instanceof ProtocolError ? error.code : 'internal',
       message: error instanceof ProtocolError ? error.message.slice(0, 256) : 'method failed',
-    } }).catch(failure => this.close(failure))
+      } }).catch(failure => this.close(failure))
+    }
     if (!registered) { replyError(new ProtocolError('unsupported', 'unknown method')); return }
     if (!this.negotiatedCaps.has(registered.capability)) { replyError(new ProtocolError('unauthorized', 'capability not granted')); return }
     if (this.active.size >= MAX_PENDING_REQUESTS) { replyError(new ProtocolError('busy', 'too many active requests')); return }
@@ -241,7 +248,11 @@ export class SecureConnection extends EventEmitter {
     })
       .finally(() => { clearTimeout(timer); this.active.delete(request.id) })
     Promise.race([work, interrupted])
-      .then(result => this.sendFrame(KINDS.RES, { id: request.id, r: result }))
+      .then(result => {
+        if (this.state !== 'ready') return
+        this.emit('request-result', { ...metadata, status: 'ok' })
+        if (this.state === 'ready') return this.sendFrame(KINDS.RES, { id: request.id, r: result })
+      })
       .catch(error => { if (this.state !== 'closed') return replyError(error) })
   }
 

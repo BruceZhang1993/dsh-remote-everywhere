@@ -1,0 +1,31 @@
+import groovy.json.JsonOutput
+import java.security.MessageDigest
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+
+// Read the actually resolved release artifacts, including version substitutions.
+gradle.projectsEvaluated {
+    def app = rootProject.findProject(':app')
+    if (app == null) return // Flutter's included Gradle build has no Android app.
+    app.tasks.register('dshReleaseInventory') {
+        doLast {
+            def configuration = app.configurations.getByName('releaseRuntimeClasspath')
+            def artifacts = configuration.incoming.artifactView {
+                componentFilter { it instanceof ModuleComponentIdentifier }
+            }.artifacts.artifacts.collect { artifact ->
+                def id = artifact.id.componentIdentifier
+                def file = artifact.file
+                [group: id.group, name: id.module, version: id.version, file: file.absolutePath,
+                 sha256: file.exists() ? MessageDigest.getInstance('SHA-256').digest(file.bytes).encodeHex().toString() : null]
+            }.sort { a, b -> "${a.group}:${a.name}:${a.version}" <=> "${b.group}:${b.name}:${b.version}" }
+            def output = new File(app.findProperty('dshInventoryPath').toString())
+            output.parentFile.mkdirs()
+            def projects = configuration.incoming.resolutionResult.allComponents.findAll {
+                it.id instanceof ProjectComponentIdentifier
+            }.collect { it.id.displayName }
+            output.text = JsonOutput.prettyPrint(JsonOutput.toJson([configuration: configuration.name, artifacts: artifacts,
+                excludedProjectComponents: projects])) + '\n'
+            println "release artifact inventory: ${artifacts.size()} entries"
+        }
+    }
+}

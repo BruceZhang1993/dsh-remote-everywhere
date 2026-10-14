@@ -8,10 +8,10 @@ const { Context } = await import(process.env.DSH_HOST_MODULE_ROOT
   ? `${process.env.DSH_HOST_MODULE_ROOT}/@deepseek-ai/cordis/lib/index.js`
   : '@deepseek-ai/cordis')
 
-function fixture(timeoutMs = 200) {
+function fixture(timeoutMs = 200, audit) {
   const ctx = new Context()
   const client = Object.assign(new EventEmitter(), { state: 'ready', peerHello: { deviceId: 'fixture-device' }, events: [], sendFrame: async function(kind, value) { this.events.push(value) }, close() {} })
-  const bridge = new InteractionBridge(ctx, () => [client], { timeoutMs })
+  const bridge = new InteractionBridge(ctx, () => [client], { timeoutMs, audit })
   const request = Object.freeze({ agent: { session: { id: 'session-1' } }, toolName: 'bash', signal: new AbortController().signal })
   return { ctx, client, bridge, request }
 }
@@ -34,6 +34,23 @@ test('real Cordis: remote win withdraws native local request, dispatches locally
   assert.equal(withdrawn, true)
   assert.equal(request.signal.aborted, false)
   assert.throws(() => bridge.decide(id, 'rejected', client), { code: 'not-found' })
+  bridge.close()
+  await ctx.fiber.dispose()
+})
+
+test('audit failure cannot turn a human allow into an executable grant or skip cleanup', async () => {
+  const { ctx, client, bridge, request } = fixture(200, event => {
+    if (event === 'interaction.decided') throw new Error('disk unavailable')
+  })
+  ctx.on('approval/request', local => new Promise(resolve => {
+    local.signal.addEventListener('abort', () => resolve('cancelled'), { once: true })
+  }))
+  const pending = ctx.waterfall(ctx, 'approval/request', request, () => 'unavailable')
+  await new Promise(resolve => setImmediate(resolve))
+  bridge.decide(client.events[0].data.approvalId, 'allowed-once', client)
+  assert.equal(await pending, 'cancelled')
+  assert.equal(client.events.at(-1).data.outcome, 'cancelled')
+  assert.equal(bridge.pending.size, 0)
   bridge.close()
   await ctx.fiber.dispose()
 })

@@ -1,0 +1,45 @@
+name: Publish reviewed candidates to GitHub Packages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: github-packages-release
+  cancel-in-progress: false
+jobs:
+  verify:
+    # A dispatch must select this release tag. No push/PR automatically publishes.
+    if: github.ref == 'refs/tags/v0.1.0'
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: [verify, mobile]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: github-packages
+    permissions:
+      contents: read
+      packages: write
+    container:
+      image: ubuntu:24.04
+      options: --memory=8g --memory-swap=12g
+    steps:
+      - run: apt-get update && apt-get install -y git curl ca-certificates
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.3'
+          registry-url: https://npm.pkg.github.com
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: github-packages-0.1.0-candidates
+          path: .cache/github-packages-0.1.0
+      - name: Verify provenance and publish in dependency order
+        run: node tools/publish-packages.mjs --publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DSH_RELEASE_APPROVED_SHA: ${{ vars.DSH_RELEASE_APPROVED_SHA }}
+  mobile:
+    needs: verify
+    uses: ./.github/workflows/mobile.yml

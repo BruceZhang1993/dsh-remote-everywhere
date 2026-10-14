@@ -1,5 +1,6 @@
 import { once } from 'node:events'
 import { localRequest } from './local.js'
+import packageInfo from '../package.json' with { type: 'json' }
 
 const tools = [
   { name: 'remote_devices', description: 'List explicitly paired DSH devices.', inputSchema: { type: 'object', properties: {}, additionalProperties: false } },
@@ -48,7 +49,7 @@ export async function serveMcp(state, input = process.stdin, output = process.st
       if (pending.size >= 32 || pending.has(message.id)) { await send({ id: message.id, error: { code: -32000, message: 'busy' } }); continue }
       const abort = new AbortController()
       const task = Promise.resolve().then(async () => {
-        if (message.method === 'initialize') return { protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'dsh-remote-everywhere', version: '0.1.0-alpha.2' } }
+        if (message.method === 'initialize') return { protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: packageInfo.name, version: packageInfo.version } }
         if (message.method === 'ping') return {}
         if (message.method === 'tools/list') return { tools }
         if (message.method !== 'tools/call') throw new Error('unknown MCP method')

@@ -34,7 +34,7 @@ DSH_IOS_ALLOW_UNBOUNDED=1 tools/mobile-check.sh ios
 ```
 
 macOS 不支持 Linux systemd/cgroup 上限，脚本默认停止，必须显式授权。产物 `.cache/mobile/dsh-remote-ios-unsigned.zip` 包含 `.app`，不是可装机 IPA。
-`.github/workflows/mobile.yml` Android job 需标签 `self-hosted, linux, dsh-mobile` 的 runner，预装 Android SDK，并启用 runner 用户的 systemd manager。iOS job 在 Android job 后串行执行，仅在手动触发并勾选 `allow_macos_build` 时开启。
+`.github/workflows/mobile.yml` Android job 使用 GitHub 托管 Linux runner 的 Ubuntu 容器，整 job 限制为 8 GiB 内存 / 4 GiB swap，并安装 JDK 21 与 Android SDK；本机入口仍使用用户 systemd scope。iOS job 在 Android job 后串行执行，仅在手动触发并勾选 `allow_macos_build` 时开启。
 CI 配置本身不代表已在远端执行，也不代表 iOS 已通过编译。
 
 ## 平台边界

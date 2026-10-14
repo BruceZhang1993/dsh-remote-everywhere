@@ -135,7 +135,7 @@ export function connectTransport(endpoint, { signal, timeoutMs = 10000 } = {}) {
       socket = net.connect({ host: url.hostname, port: Number(url.port) })
       socket.once('connect', () => finish(null, new TcpTransport(socket)))
     } else {
-      socket = new WebSocket(url, { maxPayload: MAX_WIRE_BYTES, perMessageDeflate: false, handshakeTimeout: timeoutMs })
+      socket = new WebSocket(url, { maxPayload: MAX_WIRE_BYTES, maxFragments: 1024, maxBufferedChunks: 1024, perMessageDeflate: false, handshakeTimeout: timeoutMs })
       socket.once('open', () => finish(null, new WebSocketTransport(socket)))
       socket.on('unexpected-response', (_request, response) => {
         const code = response.statusCode === 429 ? 'tunnel/busy' : response.statusCode === 530 ? 'tunnel/expired' : 'transport/lost'

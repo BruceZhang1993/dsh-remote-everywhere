@@ -1,0 +1,78 @@
+# v0.1.0 candidate, installation and release
+
+These are local candidates, not published releases. The public repository [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) is created and connected as origin; initial code synchronization and CI have been authorized; execution evidence is tracked in the M4 results. CI targets GitHub Actions; publishing targets the GitHub Packages npm registry at `https://npm.pkg.github.com`.
+Source packages retain their alpha names/versions. Standard candidates use `.cache/release-0.1.0`; GitHub candidates use `.cache/github-packages-0.1.0`. Only staging changes package names, imports, Cordis patch, versions and publication metadata.
+The manifest records the source commit, dirty-workspace flag, lockfile hash and five tarball SHA-256 hashes. A dirty candidate is not a committed release tag.
+
+## Local validation
+
+```bash
+tools/run-limited.sh pnpm check
+tools/run-limited.sh pnpm test
+tools/run-limited.sh pnpm test:release-candidate
+tools/run-limited.sh pnpm test:release-candidate --github-packages BruceZhang1993/dsh-remote-everywhere
+tools/run-limited.sh node tools/publish-packages.mjs
+```
+
+The candidate smoke command packs five candidates, installs them into a temporary consumer with install scripts disabled, and exercises the diagnostic CLI and two genuine DSH instances, including sessions, human approvals, files and bounded terminal commands.
+The supported host baseline is **DSH 0.1.7-rc.2**, with Node >=22.19.0. Host service packages must match that version. Linux management sockets are validated; Windows/macOS management is pending.
+
+## Isolated installation and rollback
+
+Use a new test profile with the supported DSH version. The smoke entry point installs all five local tarballs together without querying/publishing to GitHub Packages. The publication helper defaults to offline source/lockfile/order/size/hash validation.
+The repository owner is BruceZhang1993; candidate package scopes use lowercase:
+
+```bash
+@brucezhang1993/dsh-remote-protocol
+@brucezhang1993/dsh-remote-core
+@brucezhang1993/dsh-remote-tunnel
+@brucezhang1993/dsh-remote-cli
+@brucezhang1993/dsh-remote-everywhere
+```
+
+Wrap local install/test commands in `tools/run-limited.sh`. Preserve the active profile, lockfile and device state. Never replace identity.key or devices.json during an upgrade.
+For rollback, stop the candidate instance and restore the original profile/lockfile/tarballs while retaining its identity and trust records.
+DR v1 and the device-table format are unchanged. Older versions may omit the new audit events.
+
+Pairing requires human comparison of the same six-digit SAS on both sides. Default grants are session/stream/approval; files/terminal/admin require explicit selection, and writes/terminal still require one-shot approval.
+Endpoint refresh retains the pinned public key. Revocation remains available through local host management.
+Upgrade the controlled plugin first, then the controller plugin/App. Older peers remain wire-compatible, but protection exists only on upgraded receivers.
+
+## Audit and failure behaviour
+
+Each runtime owns remote/audit.jsonl. Current and previous logs are each limited to 1 MiB, with at most 4096 bytes per record, pre-append rotation and 0600 permissions.
+Records contain connection/authentication, RPC status, pairing/revocation, human interaction and operation metadata.
+Parameters, response content, private keys, QR/sid/SAS, endpoint URLs and exception messages are excluded.
+The log is not a tamper-proof ledger or a business database. It does not fsync every record; a host crash can lose unflushed data.
+
+Unsafe/replaced files or write failures latch an audit failure and raise an alert. New remote operations fail closed; local revocation and resource cleanup remain available.
+If an operation has executed before result auditing fails, the caller may receive a failed/unknown outcome. Do not replay a write based on that failure.
+Repair the state directory or disk, then explicitly restart. There is no implicit audit recovery.
+Archive oversized legacy logs and fix permissions before restarting; old evidence is not silently discarded.
+
+## GitHub Actions and publication gates
+
+Independent Noise review, full supply-chain review, a working private disclosure channel, real remote CI, and confirmed repository ownership are still required. Configured workflows do not prove remote execution; successful remote CI still requires execution evidence.
+Deferred M3 device/iOS/real-model acceptance remains separate. These candidates do not claim completed dual-platform product acceptance.
+
+- `ci.yml`: Node/Dart regression, security, interoperability, a short coverage-guided run, independent candidate installation and Android AOT.
+- `mobile.yml`: hosted Linux container Flutter checks/Android build. iOS requires explicit manual permission for a macOS build without systemd limits.
+- `fuzz.yml`: daily bounded Node parser fuzz, 900 seconds and at most one million iterations, persisted bounded corpus and reports.
+- `publish.yml`: manual dispatch on `v0.1.0` only. Re-run CI and Android App checks for that tag; publish the exact CI tarballs with `next`, without repacking or moving `latest`.
+
+Configure required reviewers and tag protection for the `github-packages` environment. Complete independent review, native dependency review and private-channel verification, record the evidence, then set environment variable `DSH_RELEASE_APPROVED_SHA` to the approved full commit SHA. A missing/mismatched value rejects publication. Approval must identify artifacts, hashes, account, registry and tag.
+Only the publish job receives `packages:write`; its repository `GITHUB_TOKEN` is passed only to the publishing step. The candidate must be clean and match the tag SHA, repository and lockfile.
+Preflight all existing versions; only E404 means missing. Authentication/network errors stop the release, and existing versions must match the tarball SHA-512. Publish protocol, core, tunnel, CLI, then plugin, checking registry integrity after each package. Partial failure preserves published packages; identical candidates may resume, without automatic deletion or replacement. Registry visibility delays fail the run and require operator review before resuming. Record a fresh consumer installation after actual publication; local tarball tests do not replace it.
+
+## Registry installation (after publication)
+
+GitHub's npm registry requires authentication even for public packages; new packages default to private. Verify visibility and permissions explicitly. See [official GitHub npm registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry).
+In the isolated profile `.npmrc`, use the lowercase repository scope and retain the environment reference:
+
+```ini
+@brucezhang1993:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+Supply a PAT classic with `read:packages` securely via the environment; install `@brucezhang1993/dsh-remote-everywhere@0.1.0` with install scripts disabled. Use the same full scoped name in `dsh.profile.bundles`. Update the profile package name and lockfile on upgrade while retaining its remote state/identity/trust records. Wire format remains DR v1.
+Organizations can disable inherited package access; verify Actions access in the actual repository. Install the diagnostic `@brucezhang1993/dsh-remote-cli` separately: both CLI and plugin provide a `dsh-remote` binary, so use separate profiles.

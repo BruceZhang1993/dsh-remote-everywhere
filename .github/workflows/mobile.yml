@@ -1,9 +1,10 @@
-name: M3 mobile checks
+name: Mobile checks
 on:
   push:
     paths: ['apps/mobile/**', 'packages/core/dart/**', 'tools/mobile-check.sh', '.github/workflows/mobile.yml']
   pull_request:
     paths: ['apps/mobile/**', 'packages/core/dart/**', 'tools/mobile-check.sh', '.github/workflows/mobile.yml']
+  workflow_call:
   workflow_dispatch:
     inputs:
       allow_macos_build:
@@ -17,20 +18,26 @@ concurrency:
   cancel-in-progress: true
 jobs:
   android:
-    # Requires an Android SDK and an active user systemd manager.
-    runs-on: [self-hosted, linux, dsh-mobile]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: ubuntu:24.04
+      options: --memory=8g --memory-swap=12g
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: subosito/flutter-action@v2
+      - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates python3 openjdk-21-jdk
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.47.7'
           channel: stable
-      - run: tools/mobile-check.sh android
-      - uses: actions/upload-artifact@v4
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+      # The whole job already runs inside the 8 GiB + 4 GiB swap cgroup.
+      - run: tools/mobile-check.sh android --inside-scope
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: m3-android-local-signing-apk
           path: .cache/mobile/dsh-remote-release.apk
@@ -38,16 +45,17 @@ jobs:
     needs: android
     if: github.event_name == 'workflow_dispatch' && inputs.allow_macos_build
     runs-on: macos-15
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.47.7'
           channel: stable
       - run: tools/mobile-check.sh ios
         env:
           DSH_IOS_ALLOW_UNBOUNDED: '1'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: m3-ios-unsigned-app
           path: .cache/mobile/dsh-remote-ios-unsigned.zip
