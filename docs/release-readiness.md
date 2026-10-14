@@ -5,12 +5,12 @@
 | 门禁 | 状态 | 完成证据 |
 |---|---|---|
 | 仓库与首次 CI | 已完成 | `e4a1b32` 两条 workflow 成功，clean 候选及 APK 校验见 [M4](m4-summary.md)；后续修改须验证最终 SHA |
-| 发布及晋级脚本 | 本地通过 | 15 个 mock 回归、actionlint 通过；尚未实际写注册表 |
+| 发布及晋级脚本 | 本地通过 | 15 个 mock 回归、本地 actionlint 通过；`9669955` 协议/安全及 Android AOT CI 全绿；尚未实际写注册表 |
 | 发布 environment | 已配置 | `github-packages`；审核人 BruceZhang1993；只允许 tag `v0.1.0`；未设置两个批准 SHA |
-| 私密披露渠道 | 已开启，验收未完成 | API enabled=true；实际收件、通知与维护者处理仍待验证 |
+| 私密披露渠道 | 已开启，验收未完成 | API enabled=true，公开网页 Report a vulnerability 入口可见；实际收件、通知与维护者处理仍待验证 |
 | 独立 Noise 审查 | 未完成 | [交接材料](noise-review.md) 已准备，缺第三方书面结论 |
 | Android 许可证声明 | 补证完成，完整审查未完成 | [六项补证](android-license-review.md)；仍需 Maven/native notice、平台二进制与 Apple 审查 |
-| 持续 fuzz | 未完成 | 每日有界 Node 入口已实际手动启动；单次结果、持续观察与 Dart/Noise/WS 覆盖仍需记录 |
+| 持续 fuzz | 未完成 | 首次远端 900 秒运行通过，447076 次变异/21 条语料；持续观察与 Dart/Noise/WS 覆盖仍待完成 |
 | 最终标签与批准 | 未执行 | 审查固定最终 SHA、重新通过门禁、核对 manifest，然后授权创建 `v0.1.0`；不能预填批准变量 |
 | GitHub Packages next 发布 | 未执行 | 五包依赖顺序上传，逐包核对 SHA-512；须获得具体发布授权 |
 | 注册表消费者验收 | 未执行 | 隔离 profile 经 registry 安装；诊断、配对、会话、审批、文件/终端与回滚记录 |

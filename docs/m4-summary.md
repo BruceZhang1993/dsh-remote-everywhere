@@ -23,7 +23,7 @@ M3 首版代码已提交，工作区在开工时干净。原有 Node **44/44**�
 - 添加 MIT LICENSE、安全披露策略和双语发布说明；五个 `0.1.0` 候选只在 staging 改版本，源码包继续 alpha。候选携带许可证/策略，插件携带双语安装说明；包内容排除测试夹具、私钥与状态文件，manifest 记录来源和 SHA-256。
 - GitHub Packages 候选从实际 `owner/repo` 生成五个 scoped 包名，并同步重写内部 imports/dependencies、Cordis patch 和 repository/publishConfig；先前测试使用 `local-validation` 占位账号，本轮已按真实仓库生成并复验 `@brucezhang1993` 五包。MCP serverInfo 从实际 package.json 读取名称/版本，候选不再错误声明 alpha。
 - GitHub Actions 四个 workflow 已准备，action 引用锁定为官方 tag 解析的 commit SHA：CI、托管容器 Android App、每日有界 fuzz、手动受保护标签发布。发布只下载同次 CI 产物，校验来源/锁文件/哈希/批准 SHA，并用最小权限 GITHUB_TOKEN 依次发布 next；中途失败保留已发布版本并核对完整性续发。
-- V8 覆盖率反馈短跑及 10 分钟运行通过：**147123 次变异**，执行范围 34 → 38，语料 21 条。只覆盖 Node DR/TCP；每日入口未远端执行，不声明 Dart/Noise/WS 长期覆盖完成。
+- V8 覆盖率反馈短跑及 10 分钟运行通过：**147123 次变异**，执行范围 34 → 38，语料 21 条。只覆盖 Node DR/TCP；每日入口后续首次远端运行已通过，见下；不声明 Dart/Noise/WS 长期覆盖完成。
 - 私密漏洞报告表单和 [独立 Noise 审查交接](noise-review.md) 已准备；后续已启用私密入口，但收件未验收，也没有第三方签署报告。
 - Android 外部 release 依赖 **91 个产物 / 86 个坐标**，artifact/POM 哈希均已记录；官方 Maven 源补齐 POM，OSV 当前匹配 **0**。80 个直接许可证声明、6 个声明缺口及本地 Flutter project 排除项均明确记录，完整平台/许可证独立审查仍待完成。
 
@@ -118,10 +118,19 @@ SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建�
 用户确认继续推进发布准备，未授权创建发布标签或实际发布。已落实：
 
 - `github-packages` environment 配置 required reviewer `BruceZhang1993`，只允许 tag `v0.1.0`。允许维护者审批自己的手动运行；不将这一确认视为独立安全审查。`DSH_RELEASE_APPROVED_SHA` 与 `DSH_RELEASE_PROMOTION_APPROVED_SHA` 均未设置。
-- private vulnerability reporting API 确认为 enabled=true；尚未提交测试报告或发送消息，实际收件/通知仍待验收。
+- private vulnerability reporting API 确认为 enabled=true，公开 Advisories 页已显示 Report a vulnerability；尚未提交测试报告或发送消息，实际收件/通知仍待验收。
 - 新增独立 `promote-latest` 操作：同标签重跑门禁、校验来源与批准 SHA，预查五包 SHA-512，再按依赖顺序修改/读回 latest。晋级还要求注册表安装验收后的第二个批准 SHA。缺失版本、哈希不符及鉴权/网络错误不修改标签；部分失败可对相同来源续跑。
-- 发布/晋级 mock 回归 **15/15** 与 actionlint 本地通过，不代表 registry 写入已验证。
+- 发布/晋级 mock 回归 **15/15** 与 actionlint 本地通过；后续 CI 也通过 15/15，不代表 registry 写入已验证。
 - Android 六项直接声明缺口已找到补充证据：两个准确 parent POM 链、四个匹配 engine 的官方聚合许可证。远端 APK 包含 engine 全部 1593 个许可证块；Maven/native notice、Apple 和平台独立审查仍未完成，见 [许可证补证](android-license-review.md)。
-- 已手动启动 [900 秒 Node fuzz](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38523450716)，来源为文档提交 `7e8053b`；执行结果后续记录。单次通过不能计为持续长期或 Dart/Noise/WS 覆盖完成。
+- 首次 [900 秒 Node fuzz](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38523450716) **success**，来源为文档提交 `7e8053b`：447076 次变异、执行范围 32 → 38、4 次发现、21 条语料。报告/语料的源码哈希与当前两个目标文件一致；语料数量和每条输入大小在限额内，无 failure.json。单次通过不能计为持续长期或 Dart/Noise/WS 覆盖完成。
 
 完整顺序与未完成项见 [发布就绪清单](release-readiness.md)。当前本机凭据缺 `read:packages`，包列表查询返回 403；尚未核验包可见性和消费者安装权限。
+
+
+### 后续远端验证
+
+代码提交 `9669955e697dbcc1e6ce9ae928497f777c887a26` 的 [协议/安全 CI](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38524452361) **success**，protocol-core 与 android-aot 全部通过；日志确认发布/晋级门禁 **15/15**。本轮没有修改 App 或 Dart，移动 workflow 的路径过滤未触发重跑；其已有 `e4a1b32` 成功记录保留，不能称为 `9669955` 的移动 App 构建。
+五个新候选已下载至 `.cache/m4/ci-candidates-9669955/`，sourceDirty=false，完整 SHA、仓库、锁文件哈希、五包大小和 SHA-256 全部匹配。完整 CI 日志 `.cache/m4/ci-protocol-9669955.log`。
+
+首次远端 fuzz 产物位于 `.cache/m4/fuzz-7e8053b/`，日志 `.cache/m4/fuzz-7e8053b.log`。Node v22.23.3，实际 900002 ms；report SHA-256 为 `57441ab120ed292351259c15b600fd7edbd0cfb7018046359942f2a8854f4e95`，corpus SHA-256 为 `40d5357688c9dbf657c02ca43db0d08fed8ee0d4145d17ee96b1ca20c5f663e6`。运行范围仅 Node DR/TCP。
+此次结果回填仅修改文档并跳过重复 CI；代码验证对应 `9669955`，fuzz 对应 `7e8053b`。没有创建发布标签、设置批准 SHA、发布 npm 版本或修改 registry 的 latest。
