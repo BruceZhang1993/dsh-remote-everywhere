@@ -35,7 +35,7 @@ SDK 最终收到规范化的完整 binary message，继续负责 outbound maskin
 10 秒短跑通过（5564 次变异）；随后复用语料运行 **600 秒、147123 次变异**，初始执行范围 34 → 38，2 个变异输入产生新范围，最终保留 21 条语料。范围数不是覆盖率百分比。
 输入最多 1024 字节、语料最多 512 条；对 DR 头/载荷做编解码往返，对 TCP 解码比较分块/合并结果，只有 ProtocolError 可作为预期拒绝。失败保留可复现 base64 输入与 PRNG 状态。
 报告记录 Node 版本、源文件哈希、预算和范围，日志 `.cache/m4/coverage-fuzz-{smoke,10min}.log`，语料/报告 `.cache/coverage-fuzz`。本地 scope 内存峰值观测约 234 MiB，限额仍为 8 GiB / 4 GiB swap。
-`fuzz.yml` 已准备每日 900 秒、最多 100 万变异的远端入口，但尚无远端运行结果。该入口只覆盖 Node DR 解析与 TCP 解码；Dart/Noise/WS 状态机的覆盖率引导与持续长期证据仍未完成。
+`fuzz.yml` 每日 900 秒、最多 100 万变异的远端入口已手动启动，结果见 [M4 记录](m4-summary.md)。该入口只覆盖 Node DR 解析与 TCP 解码；Dart/Noise/WS 状态机的覆盖率引导与持续长期证据仍未完成。
 
 ## 供应链复核
 
@@ -49,7 +49,7 @@ Node 缺失项均为可选 peer/其他 OS 二进制；库存不代表这些平�
 - `mobile_scanner` Android 原生依赖包含 MLKit 和 CameraX；此清单未覆盖所有 Maven/CocoaPods 二进制的漏洞、许可证与供应链保证，iOS/macOS 与平台依赖审查仍未通过。
 
 2026-10-14 补充从实际 `releaseRuntimeClasspath` 解析的 **91 个外部 artifact / 86 个 Maven 坐标**，已记录全部 artifact SHA-256；补齐官方 Google Maven/Maven Central POM，86 个坐标的 POM 哈希均存在。OSV 对全部 86 个坐标查询，当前匹配 **0**，快照在 `.cache/m4/android-osv.json`，不是“无漏洞”证明。
-80 个坐标有直接 POM 许可证声明；`auto-value-annotations`/`listenablefuture` 与 Flutter engine/embedding 的 6 个坐标缺直接声明，前两者有 parent POM，仍需继承关系与发布所需 notice 的复核。缺声明不会被库存判定为已审查通过。
+80 个坐标有直接 POM 许可证声明；`auto-value-annotations`/`listenablefuture` 与 Flutter engine/embedding 的 6 个坐标缺直接声明，前两者的准确 parent POM 链与后四者匹配 engine 的许可证已补证，APK 内 engine 文本也已核验，见 [补证材料](android-license-review.md)。发布所需 Maven/native notice 和独立审查仍未完成，补证不改变原始 POM 声明。
 Flutter 本地 plugin project 列在 `excludedProjectComponents`，不混入 Maven 公告扫描；Gradle/SDK 工具链、Apple 解析结果和平台二进制独立审查仍在范围外。日志/库存 `.cache/m4/android-{inventory.log,artifacts.json,dependencies.json,osv.log}`。
 
 规范/包来源：[Noise 规范](https://noiseprotocol.org/noise.html)、[cryptography 2.9.0](https://pub.dev/packages/cryptography/versions/2.9.0)、[flutter_secure_storage 10.3.4](https://pub.dev/packages/flutter_secure_storage/versions/10.3.4)。本文件的实现判断来自本机源码与运行结果，不将上游包介绍当安全审计结论。
@@ -58,4 +58,4 @@ Flutter 本地 plugin project 列在 `excludedProjectComponents`，不混入 Mav
 
 GitHub Actions 的 action 引用按官方仓库 tag 实际解析为 commit SHA；CI/workflow、本地候选和注册表发布分开记录。`publish-packages.mjs` 默认离线校验；写入只接受同仓库 Actions 的干净 `v0.1.0` 标签、同 SHA 的批准变量与准确 tarball 哈希。
 发布回归使用独立临时目录中的 mock git/npm，检查篡改、路径越界、脏来源、错误仓库/批准、鉴权/网络失败、已有不匹配版本与部分失败，不能把 mock 成功当注册表实际发布。
-私密报告表单只写入配置文件，尚未启用；独立 Noise 审查范围见 [交接材料](noise-review.md)，尚无第三方签署结论。
+私密报告入口已启用，实际收件/通知验收尚未完成；独立 Noise 审查范围见 [交接材料](noise-review.md)，尚无第三方签署结论。

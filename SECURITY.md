@@ -1,9 +1,9 @@
 # Security policy / 安全披露策略
 
 This project is pre-release. Local `0.1.0` tarballs are candidates, not published or independently audited releases.
-No private reporting address or repository advisory channel has been confirmed yet. Configuring and verifying that channel is a release gate.
-The public GitHub repository [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) has been created. A private reporting form is prepared in `.github/VULNERABILITY_REPORT.yml`; the file does not enable reporting. An administrator must enable private vulnerability reporting and verify receipt. For a private repository, establish a reachable private maintainer channel instead. See [GitHub configuration](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
-Until it is configured, use an existing private contact with the maintainer. Do not open a public issue with an exploit or sensitive logs.
+Private vulnerability reporting is enabled for this repository as of 2026-10-14. Receipt and maintainer notification have not been verified; that verification remains a release gate.
+The public GitHub repository [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) has been created. A private reporting form is prepared in `.github/VULNERABILITY_REPORT.yml`; the file alone does not enable reporting. The repository API now confirms it is enabled; maintainers still need to verify receipt and notifications. For a private repository, establish a reachable private maintainer channel instead. See [GitHub configuration](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
+Use [Report a vulnerability](https://github.com/BruceZhang1993/dsh-remote-everywhere/security/advisories/new) for private disclosure. If the form is unavailable, use an existing private contact with the maintainer. Do not open a public issue with an exploit or sensitive logs.
 
 Include the package/App version, DSH version, operating system, affected capability, and a minimal reproduction using synthetic data.
 Do not send identity keys, pairing QR/sid/SAS, provider credentials, chat text, attachments, or unredacted production traces.
@@ -14,9 +14,9 @@ TLS and tunnels do not replace those checks. Local host compromise, traffic meta
 See `docs/security.md` and `docs/m4-summary.md` for the model, validation evidence and remaining independent review.
 
 本项目尚未正式发布。本地 `0.1.0` tarball 仅为候选产物，不代表注册表发布或独立安全审计完成。
-私密联系邮箱、仓库漏洞报告入口尚未确认，配置并验证有效渠道是正式发布门禁。
-公开远程仓库 `BruceZhang1993/dsh-remote-everywhere` 已创建。已准备 `.github/VULNERABILITY_REPORT.yml` 私密报告表单，该文件不会自动开启报告功能；需管理员启用 Private vulnerability reporting 并验证收件，私有仓库则需落实可达的私密维护者渠道。
-渠道未配置时，请使用与维护者已有的私密联系方式；不要在公开 issue 中贴利用方法或敏感日志。
+仓库 Private vulnerability reporting 已于 2026-10-14 启用，API 已核验；实际收件与维护者通知尚未验收，仍是正式发布门禁。
+公开远程仓库 `BruceZhang1993/dsh-remote-everywhere` 已创建。已准备 `.github/VULNERABILITY_REPORT.yml` 私密报告表单，该文件不会自动开启报告功能；当前已启用，仍需维护者验证收件与通知，私有仓库则需落实可达的私密维护者渠道。
+请使用 [Report a vulnerability](https://github.com/BruceZhang1993/dsh-remote-everywhere/security/advisories/new) 私密入口；若无法使用，联系已有私密维护者渠道。不要在公开 issue 中贴利用方法或敏感日志。
 
 报告应包含包/App 版本、DSH 版本、操作系统、受影响能力及使用模拟数据的最小复现。
 不要发送身份私钥、配对二维码/sid/SAS、模型凭据、会话正文、附件或未经脱敏的生产 trace。

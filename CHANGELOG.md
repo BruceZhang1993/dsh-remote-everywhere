@@ -7,6 +7,8 @@
 
 ## 2026-10-14 — M4 GitHub 发布准备与覆盖率 fuzz（未发布）
 
+- 后续收口：`e4a1b32` 协议/安全与移动 Android CI 全部通过；已启用私密漏洞报告，发布 environment 限定 `v0.1.0` 并要求维护者审核。增加独立 latest 晋级与 15 个发布/晋级门禁回归；Android 六项许可证声明补证完成，完整审查仍保留。正式包及标签尚未发布。
+
 - 后续接入：用户创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，本地 origin 已配置；远端为空、默认 master、Actions 开启但无运行。候选与安装示例改用实际 `@brucezhang1993` scope；初始提交/推送、保护 environment 和私密报告启用待落实。
 - 用户暂缓远程仓库创建；CI 按 GitHub Actions、发布按 GitHub Packages 准备，未推送或执行远端 workflow。
 - owner-scoped 五包 staging 候选同步重写内部引用和 Cordis patch，保留源码 alpha 名称/版本；独立消费者和真实 DSH 双向回归通过。

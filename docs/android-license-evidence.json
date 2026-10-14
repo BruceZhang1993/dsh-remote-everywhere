@@ -1,0 +1,127 @@
+{
+  "reviewedAt": "2026-10-14",
+  "scope": "Supplemental declaration and embedded-notice evidence for six missing direct Android POM declarations; not independent compliance or binary review",
+  "inventorySha256": "402b036e8d003967734f439ff089c7ea324f8b22140247d0b042963b4c393522",
+  "sources": [
+    {
+      "file": "auto-value-parent-1.6.3.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/auto/value/auto-value-parent/1.6.3/auto-value-parent-1.6.3.pom",
+      "sha256": "e59df5732b4cb34d5727181446f9ded9ce4425131a0a1062519eea196de4d8a1"
+    },
+    {
+      "file": "auto-parent-7.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/auto/auto-parent/7/auto-parent-7.pom",
+      "sha256": "a46426fccb5d32705ad9cbbc996f786bd048cc8cbdd21db046500169f15a4356"
+    },
+    {
+      "file": "guava-parent-26.0-android.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom",
+      "sha256": "f8698ab46ca996ce889c1afc8ca4f25eb8ac6b034dc898d4583742360016cc04"
+    },
+    {
+      "file": "sky_engine-deb287481e3ce9468f3434937ced4240a70539ca.zip",
+      "url": "https://storage.googleapis.com/flutter_infra_release/flutter/deb287481e3ce9468f3434937ced4240a70539ca/sky_engine.zip",
+      "sha256": "fc383f9dcdca07b3cbba96d42ddf20af23a950ffa2eced170a93bdfd31263cc2"
+    }
+  ],
+  "packages": [
+    {
+      "coordinate": "com.google.auto.value:auto-value-annotations:1.6.3",
+      "artifactSha256": [
+        "0e951fee8c31f60270bc46553a8586001b7b93dbb12aec06373aa99a150392c0"
+      ],
+      "pomSha256": [
+        "e1fc780f7ee025e662b3da72723dbe2ac8dac0a2f8920f265315c4e1be3d765c"
+      ],
+      "evidence": "exact-version-parent-pom-chain",
+      "license": "Apache-2.0",
+      "parentChain": [
+        "com.google.auto.value:auto-value-parent:1.6.3",
+        "com.google.auto:auto-parent:7"
+      ]
+    },
+    {
+      "coordinate": "com.google.guava:listenablefuture:1.0",
+      "artifactSha256": [
+        "e4ad7607e5c0477c6f890ef26a49cb8d1bb4dffb650bab4502afee64644e3069"
+      ],
+      "pomSha256": [
+        "53873caf26bc1ed8a567ea6c939ab2aaa3f47a5e32d5cade95ddf5080d23238a"
+      ],
+      "evidence": "exact-version-parent-pom-chain",
+      "license": "Apache-2.0",
+      "parentChain": [
+        "com.google.guava:guava-parent:26.0-android"
+      ]
+    },
+    {
+      "coordinate": "io.flutter:arm64_v8a_release:1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "artifactSha256": [
+        "d940eba5aca3b58c785ef7f093cb351c871e1410c6b122c7eb1b31a9ca18225f"
+      ],
+      "pomSha256": [
+        "8fc73533c6eabc9103a5a6d2d9e5cc9bc72eba554762f34d5d0f19610d831baa"
+      ],
+      "evidence": "matching-engine-sky_engine-license-and-apk-notices",
+      "license": "Flutter SDK and bundled third-party licenses; not a single license",
+      "parentChain": []
+    },
+    {
+      "coordinate": "io.flutter:armeabi_v7a_release:1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "artifactSha256": [
+        "3909e6467c1fe6202bbf64f377f158171d6b83a86d9cbc39f67f748b217e55ad"
+      ],
+      "pomSha256": [
+        "fe4fc9b98fe6e2ea361fe7bb7c5e257d4128ad42131b64b1d720946d8388b5eb"
+      ],
+      "evidence": "matching-engine-sky_engine-license-and-apk-notices",
+      "license": "Flutter SDK and bundled third-party licenses; not a single license",
+      "parentChain": []
+    },
+    {
+      "coordinate": "io.flutter:flutter_embedding_release:1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "artifactSha256": [
+        "395504a17bbc944fb69089792a70bff1bc281d302fe736341220957bddf39b6a"
+      ],
+      "pomSha256": [
+        "97efb7667dd458b140f90c92c67aed92b05a69cfda412a8bace3623f252b1ea7"
+      ],
+      "evidence": "matching-engine-sky_engine-license-and-apk-notices",
+      "license": "Flutter SDK and bundled third-party licenses; not a single license",
+      "parentChain": []
+    },
+    {
+      "coordinate": "io.flutter:x86_64_release:1.0.0-deb287481e3ce9468f3434937ced4240a70539ca",
+      "artifactSha256": [
+        "75b8ec46ceb0a3813a78efd4dc631b188a2e507c6f10655c217d4ac761320347"
+      ],
+      "pomSha256": [
+        "5cd8300c4bd98caa5bc36bcfc8574d5b21cf27d0b694a5a698d0fd3e0e82b9d5"
+      ],
+      "evidence": "matching-engine-sky_engine-license-and-apk-notices",
+      "license": "Flutter SDK and bundled third-party licenses; not a single license",
+      "parentChain": []
+    }
+  ],
+  "flutterEngine": {
+    "revision": "deb287481e3ce9468f3434937ced4240a70539ca",
+    "licenseSha256": "3c0040023a5789bf56d6bf41fd44f08b21758523d41f128fb7dd6beb398d1191",
+    "licenseMatchesInstalledSdk": true,
+    "oldBundleLicensePointerRevision": "035316565ad77281a75305515e4682e6c4c6f7ca",
+    "oldPointerUsedAsEvidence": false
+  },
+  "apk": {
+    "sourceCommit": "e4a1b328366e7ec7f88fd9c02ac472d18d6b1b19",
+    "sha256": "0f4528c254ab4be6d0204bce80c652f11fa5471eed2a2b289889b6dd68dca8bf",
+    "noticesEntry": "assets/flutter_assets/NOTICES.Z",
+    "decompressedNoticesSha256": "86d3f05b9028c031f314b1902f7fe41f2c5663e6433a5365f7b6ce5a3c9c6e10",
+    "engineLicenseBlocks": 1593,
+    "engineUniqueLicenseTexts": 1588,
+    "missingEngineLicenseTexts": 0
+  },
+  "remaining": [
+    "Review Maven/native distribution notice obligations, including auto-value-annotations/listenablefuture; declarations alone do not establish compliance",
+    "Independent platform binary review",
+    "Apple dependencies and distribution licensing"
+  ]
+}

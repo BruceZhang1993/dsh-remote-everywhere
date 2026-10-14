@@ -1,6 +1,6 @@
 # v0.1.0 candidate, installation and release
 
-These are local candidates, not published releases. The public repository [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) is created and connected as origin; initial code synchronization and CI have been authorized; execution evidence is tracked in the M4 results. CI targets GitHub Actions; publishing targets the GitHub Packages npm registry at `https://npm.pkg.github.com`.
+Local and remote CI candidates exist; no package has been published by this project workflow. The public repository [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) is created and connected as origin; initial code synchronization and CI have been authorized; execution evidence is tracked in the M4 results. CI targets GitHub Actions; publishing targets the GitHub Packages npm registry at `https://npm.pkg.github.com`.
 Source packages retain their alpha names/versions. Standard candidates use `.cache/release-0.1.0`; GitHub candidates use `.cache/github-packages-0.1.0`. Only staging changes package names, imports, Cordis patch, versions and publication metadata.
 The manifest records the source commit, dirty-workspace flag, lockfile hash and five tarball SHA-256 hashes. A dirty candidate is not a committed release tag.
 
@@ -52,17 +52,21 @@ Archive oversized legacy logs and fix permissions before restarting; old evidenc
 
 ## GitHub Actions and publication gates
 
-Independent Noise review, full supply-chain review, a working private disclosure channel, real remote CI, and confirmed repository ownership are still required. Configured workflows do not prove remote execution; successful remote CI still requires execution evidence.
+Independent Noise review, full supply-chain review, sustained fuzz and private-report receipt verification remain required. Repository ownership is confirmed, and protocol/security plus mobile Android CI passed for `e4a1b32`; clean provenance and artifacts were checked. See [M4 results](m4-summary.md). The final release tag must pass its own checks.
 Deferred M3 device/iOS/real-model acceptance remains separate. These candidates do not claim completed dual-platform product acceptance.
 
 - `ci.yml`: Node/Dart regression, security, interoperability, a short coverage-guided run, independent candidate installation and Android AOT.
 - `mobile.yml`: hosted Linux container Flutter checks/Android build. iOS requires explicit manual permission for a macOS build without systemd limits.
 - `fuzz.yml`: daily bounded Node parser fuzz, 900 seconds and at most one million iterations, persisted bounded corpus and reports.
-- `publish.yml`: manual dispatch on `v0.1.0` only. Re-run CI and Android App checks for that tag; publish the exact CI tarballs with `next`, without repacking or moving `latest`.
+- `publish.yml`: manual dispatch on `v0.1.0` only. Re-run CI and Android App checks for that tag; use the exact CI tarballs. `publish-next` publishes to `next`; `promote-latest` only promotes five already published, integrity-matching versions. Both require environment review.
 
-Configure required reviewers and tag protection for the `github-packages` environment. Complete independent review, native dependency review and private-channel verification, record the evidence, then set environment variable `DSH_RELEASE_APPROVED_SHA` to the approved full commit SHA. A missing/mismatched value rejects publication. Approval must identify artifacts, hashes, account, registry and tag.
+The `github-packages` environment requires review by `BruceZhang1993` and allows only tag `v0.1.0`. Owner self-review is allowed for a manual run; this is maintainer approval, not independent security review. Private vulnerability reporting is enabled; receipt/notification verification is pending. Complete independent review, native dependency review and private-channel verification, record the evidence, then set environment variable `DSH_RELEASE_APPROVED_SHA` to the approved full commit SHA. A missing/mismatched value rejects publication. Approval must identify artifacts, hashes, account, registry and tag.
 Only the publish job receives `packages:write`; its repository `GITHUB_TOKEN` is passed only to the publishing step. The candidate must be clean and match the tag SHA, repository and lockfile.
 Preflight all existing versions; only E404 means missing. Authentication/network errors stop the release, and existing versions must match the tarball SHA-512. Publish protocol, core, tunnel, CLI, then plugin, checking registry integrity after each package. Partial failure preserves published packages; identical candidates may resume, without automatic deletion or replacement. Registry visibility delays fail the run and require operator review before resuming. Record a fresh consumer installation after actual publication; local tarball tests do not replace it.
+
+After registry consumer acceptance, record the source SHA, five integrity hashes, consumer environment, diagnostics/real DSH regression and rollback results. Set `DSH_RELEASE_PROMOTION_APPROVED_SHA` to the same full SHA and explicitly authorize stable promotion. Dispatch `promote-latest` on the same `v0.1.0` tag. The script preflights all five published versions before changing any tag, promotes in dependency order, and reads back `latest`. Missing versions, integrity mismatches or unapproved sources fail before any tag mutation. A partial failure preserves completed tags and stops dependents; the identical reviewed source can resume after inspection. Neither approval variable is currently set; no publication or promotion has run.
+
+See the [release readiness checklist](release-readiness.md) and [Android declaration evidence](android-license-review.md).
 
 ## Registry installation (after publication)
 

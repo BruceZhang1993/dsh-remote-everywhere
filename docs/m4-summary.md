@@ -3,7 +3,7 @@
 日期：2026-10-14。基线 `475ea94`，分支 `feature/20261013-m4Hardening`。
 状态：**接收加固、统一审计、scoped 候选、首次远端 CI 与 GitHub 发布流程准备已收口；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
 用户已创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，origin 已接入；默认 master，Actions 已启用。用户明确授权后，M4 实现提交 `f266b56` 首次推送至 origin/master，远端 SHA 已核对一致。CI 首轮结果及修复见下方。
-远端只读核验：private vulnerability reporting 未启用，environment 列表为空，默认 workflow token 权限为 read。发布 job 的 packages:write 声明已准备；保护 environment/批准 SHA 与私密收件验收仍需落实，仓库创建不代表已可正式发布。
+远端初次核验时 private vulnerability reporting 未启用、environment 列表为空；2026-10-14 后续已启用报告并配置 `github-packages` environment，见下方发布收口记录。批准 SHA 和私密收件验收仍未完成，尚未发布。
 
 ## M3 复核结论
 
@@ -24,7 +24,7 @@ M3 首版代码已提交，工作区在开工时干净。原有 Node **44/44**�
 - GitHub Packages 候选从实际 `owner/repo` 生成五个 scoped 包名，并同步重写内部 imports/dependencies、Cordis patch 和 repository/publishConfig；先前测试使用 `local-validation` 占位账号，本轮已按真实仓库生成并复验 `@brucezhang1993` 五包。MCP serverInfo 从实际 package.json 读取名称/版本，候选不再错误声明 alpha。
 - GitHub Actions 四个 workflow 已准备，action 引用锁定为官方 tag 解析的 commit SHA：CI、托管容器 Android App、每日有界 fuzz、手动受保护标签发布。发布只下载同次 CI 产物，校验来源/锁文件/哈希/批准 SHA，并用最小权限 GITHUB_TOKEN 依次发布 next；中途失败保留已发布版本并核对完整性续发。
 - V8 覆盖率反馈短跑及 10 分钟运行通过：**147123 次变异**，执行范围 34 → 38，语料 21 条。只覆盖 Node DR/TCP；每日入口未远端执行，不声明 Dart/Noise/WS 长期覆盖完成。
-- 私密漏洞报告表单和 [独立 Noise 审查交接](noise-review.md) 已准备，渠道未启用，也没有第三方签署报告。
+- 私密漏洞报告表单和 [独立 Noise 审查交接](noise-review.md) 已准备；后续已启用私密入口，但收件未验收，也没有第三方签署报告。
 - Android 外部 release 依赖 **91 个产物 / 86 个坐标**，artifact/POM 哈希均已记录；官方 Maven 源补齐 POM，OSV 当前匹配 **0**。80 个直接许可证声明、6 个声明缺口及本地 Flutter project 排除项均明确记录，完整平台/许可证独立审查仍待完成。
 
 ## 依赖公告复核
@@ -88,7 +88,7 @@ tools/run-limited.sh node tools/dependency-inventory.mjs
 GitHub Packages 候选目录 `.cache/github-packages-0.1.0`，入口与环境配置见 [发布说明](release.md)；仓库归属已确认，正式发布仍需独立审查、保护 environment、批准 SHA 与有效披露渠道，不能由仓库创建推断已获发布授权。
 仓库接入复验：实际 scope 五包独立安装、诊断 CLI、两个真实同版 DSH 双向闭环与 MCP metadata 通过；离线发布校验、mock 门禁 **9/9** 和 actionlint 再次通过。日志 `.cache/m4/github-repo-{candidate,offline,release-guards,actionlint}.log`。该阶段没有推送、触发远端运行或发布包。
 已授权首次同步：在当前 M4 feature 分支提交 `feat: 完成 M4 安全加固与 GitHub 发布准备`，将该提交及 M1–M3 历史首次推送到空仓库的 `origin/master` 并触发 CI；用户已确认执行；正式发布门禁保留，不创建发布标签。
-剩余：Node 持续长期结果、Dart/Noise/WS 长期覆盖、独立 Noise 与平台二进制审查、私密渠道实际启用/验证、environment/包权限和正式发布；M3 延期项不变。
+剩余：Node 持续长期结果、Dart/Noise/WS 长期覆盖、独立 Noise、平台二进制及完整分发许可证审查、私密收件验证、批准 SHA/包权限和正式发布；M3 延期项不变。
 
 ## 首次 GitHub Actions 执行
 
@@ -111,3 +111,17 @@ SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建�
 - 完整 CI 日志保存在 `.cache/m4/ci-protocol-e4a1b32.log`、`.cache/m4/ci-mobile-e4a1b32.log`，APK 签名日志为 `.cache/m4/ci-android-e4a1b32-signature.log`。
 
 本次证据回填仅修改文档，以 `[skip ci]` 同步；以上 CI 和产物均对应 `e4a1b32`，不是后续文档提交。正式发布和延期验收项继续保留。
+
+
+## 发布门禁后续收口
+
+用户确认继续推进发布准备，未授权创建发布标签或实际发布。已落实：
+
+- `github-packages` environment 配置 required reviewer `BruceZhang1993`，只允许 tag `v0.1.0`。允许维护者审批自己的手动运行；不将这一确认视为独立安全审查。`DSH_RELEASE_APPROVED_SHA` 与 `DSH_RELEASE_PROMOTION_APPROVED_SHA` 均未设置。
+- private vulnerability reporting API 确认为 enabled=true；尚未提交测试报告或发送消息，实际收件/通知仍待验收。
+- 新增独立 `promote-latest` 操作：同标签重跑门禁、校验来源与批准 SHA，预查五包 SHA-512，再按依赖顺序修改/读回 latest。晋级还要求注册表安装验收后的第二个批准 SHA。缺失版本、哈希不符及鉴权/网络错误不修改标签；部分失败可对相同来源续跑。
+- 发布/晋级 mock 回归 **15/15** 与 actionlint 本地通过，不代表 registry 写入已验证。
+- Android 六项直接声明缺口已找到补充证据：两个准确 parent POM 链、四个匹配 engine 的官方聚合许可证。远端 APK 包含 engine 全部 1593 个许可证块；Maven/native notice、Apple 和平台独立审查仍未完成，见 [许可证补证](android-license-review.md)。
+- 已手动启动 [900 秒 Node fuzz](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38523450716)，来源为文档提交 `7e8053b`；执行结果后续记录。单次通过不能计为持续长期或 Dart/Noise/WS 覆盖完成。
+
+完整顺序与未完成项见 [发布就绪清单](release-readiness.md)。当前本机凭据缺 `read:packages`，包列表查询返回 403；尚未核验包可见性和消费者安装权限。

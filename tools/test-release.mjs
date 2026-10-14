@@ -24,7 +24,7 @@ function fixture() {
     cpSync(join(candidate, artifact.file), join(destination, artifact.file))
     integrities[artifact.name] = `sha512-${createHash('sha512').update(readFileSync(join(destination, artifact.file))).digest('base64')}`
   }
-  const registry = { integrities, existing: [], error: null, failPublish: null }
+  const registry = { integrities, existing: [], latest: {}, error: null, failPublish: null, failPromote: null, wrongLatest: false }
   const state = join(directory, 'registry.json'), calls = join(directory, 'calls.jsonl')
   writeFileSync(join(directory, 'bin/git'), `#!/usr/bin/env node
 if (process.argv[2] === 'rev-parse') console.log(process.env.GITHUB_SHA);
@@ -39,28 +39,33 @@ if (args[0] === 'view') {
   const name = args[1].replace(/@0\\.1\\.0$/, '');
   const error = state.error || (!state.existing.includes(name) ? 'E404' : null);
   if (error) { console.log(JSON.stringify({error:{code:error}})); process.exit(1); }
-  console.log(JSON.stringify(state.integrities[name]));
+  console.log(JSON.stringify(args[2] === 'dist-tags.latest' ? (state.wrongLatest ? '0.0.0' : state.latest[name]) : state.integrities[name]));
 } else if (args[0] === 'publish') {
   const name = JSON.parse(fs.readFileSync(process.env.TEST_MANIFEST)).artifacts.find(a=>a.file===path.basename(args[1])).name;
   if (state.failPublish === name) process.exit(1);
   state.existing.push(name); fs.writeFileSync(process.env.TEST_REGISTRY, JSON.stringify(state));
+} else if (args[0] === 'dist-tag' && args[1] === 'add') {
+  const name = args[2].replace(/@0\\.1\\.0$/, '');
+  if (state.failPromote === name) process.exit(1);
+  state.latest[name] = '0.1.0'; fs.writeFileSync(process.env.TEST_REGISTRY, JSON.stringify(state));
 } else process.exit(2);
 `, { mode: 0o700 })
   const manifestPath = join(destination, 'manifest.json')
   const run = (publish = true, overrides = {}) => {
     writeFileSync(manifestPath, JSON.stringify(manifest)); writeFileSync(state, JSON.stringify(registry))
-    return spawnSync(process.execPath, [join(directory, 'tools/publish-packages.mjs'), ...(publish ? ['--publish'] : [])], {
+    return spawnSync(process.execPath, [join(directory, 'tools/publish-packages.mjs'), ...(publish ? [publish === 'promote' ? '--promote' : '--publish'] : [])], {
       encoding: 'utf8', timeout: 10000, env: { ...process.env, PATH: `${join(directory, 'bin')}:${process.env.PATH}`,
         GITHUB_ACTIONS: 'true', NODE_AUTH_TOKEN: 'synthetic-test-only',
         GITHUB_REPOSITORY: manifest.repository, GITHUB_SHA: manifest.sourceCommit, GITHUB_REF: 'refs/tags/v0.1.0',
-        DSH_RELEASE_APPROVED_SHA: manifest.sourceCommit, TEST_REGISTRY: state, TEST_CALLS: calls, TEST_MANIFEST: manifestPath, ...overrides },
+        DSH_RELEASE_APPROVED_SHA: manifest.sourceCommit, DSH_RELEASE_PROMOTION_APPROVED_SHA: manifest.sourceCommit,
+        TEST_REGISTRY: state, TEST_CALLS: calls, TEST_MANIFEST: manifestPath, ...overrides },
     })
   }
-  const published = () => {
-    try { return readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line)).filter(args => args[0] === 'publish') }
+  const recorded = (command) => {
+    try { return readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line)).filter(args => args[0] === command) }
     catch (error) { if (error.code === 'ENOENT') return []; throw error }
   }
-  return { directory, destination, manifest, registry, run, published }
+  return { directory, destination, manifest, registry, run, published: () => recorded('publish'), promoted: () => recorded('dist-tag') }
 }
 function scenario(name, body) {
   test(name, () => { const context = fixture(); try { body(context) } finally { rmSync(context.directory, { recursive: true, force: true }) } })
@@ -108,4 +113,46 @@ scenario('identical partially published candidates resume without republishing',
 scenario('partial publication failure stops dependent packages', context => {
   context.registry.failPublish = context.manifest.artifacts[2].name
   assert.notEqual(context.run().status, 0); assert.equal(context.published().length, 3)
+})
+scenario('promotion needs separate approval and the reviewed release context', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name)
+  for (const overrides of [{ DSH_RELEASE_PROMOTION_APPROVED_SHA: '' }, { DSH_RELEASE_PROMOTION_APPROVED_SHA: 'other' },
+    { DSH_RELEASE_APPROVED_SHA: '' }, { GITHUB_REF: 'refs/heads/master' }, { TEST_GIT_DIRTY: ' M package.json' }]) {
+    assert.notEqual(context.run('promote', overrides).status, 0)
+  }
+  assert.equal(context.promoted().length, 0); assert.equal(context.published().length, 0)
+})
+scenario('promotion checks every published integrity before changing any tag', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name)
+  const name = context.manifest.artifacts[4].name
+  context.registry.integrities[name] = 'sha512-mismatch'
+  assert.match(context.run('promote').stderr, /integrity differs/)
+  assert.equal(context.promoted().length, 0); assert.equal(context.published().length, 0)
+})
+scenario('missing versions and registry failures cannot promote', context => {
+  for (const error of [null, 'E401', 'E403', 'ENOTFOUND']) {
+    context.registry.error = error; assert.notEqual(context.run('promote').status, 0)
+  }
+  assert.equal(context.promoted().length, 0); assert.equal(context.published().length, 0)
+})
+scenario('promotion changes only latest tags in dependency order and is repeatable', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name)
+  assert.equal(context.run('promote').status, 0)
+  assert.deepEqual(context.promoted().map(args => args[2]), context.manifest.artifacts.map(a => `${a.name}@0.1.0`))
+  assert.ok(context.promoted().every(args => args[3] === 'latest'))
+  assert.equal(context.run('promote').status, 0); assert.equal(context.published().length, 0)
+})
+scenario('partial promotion failure stops dependent tags and can resume', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name)
+  context.registry.failPromote = context.manifest.artifacts[2].name
+  assert.notEqual(context.run('promote').status, 0); assert.equal(context.promoted().length, 3)
+  const stateAfterFailure = JSON.parse(readFileSync(join(context.directory, 'registry.json')))
+  assert.deepEqual(Object.keys(stateAfterFailure.latest), context.manifest.artifacts.slice(0, 2).map(a => a.name))
+  context.registry.latest = stateAfterFailure.latest; context.registry.failPromote = null
+  assert.equal(context.run('promote').status, 0); assert.equal(context.published().length, 0)
+})
+scenario('latest tag verification failure stops subsequent promotions', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name); context.registry.wrongLatest = true
+  assert.match(context.run('promote').stderr, /latest tag verification failed/)
+  assert.equal(context.promoted().length, 1); assert.equal(context.published().length, 0)
 })

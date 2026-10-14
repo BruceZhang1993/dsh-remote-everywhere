@@ -1,6 +1,15 @@
 name: Publish reviewed candidates to GitHub Packages
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Publish to next, or promote after registry installation acceptance
+        type: choice
+        required: true
+        default: publish-next
+        options:
+          - publish-next
+          - promote-latest
 permissions:
   contents: read
 concurrency:
@@ -39,11 +48,18 @@ jobs:
         with:
           name: github-packages-0.1.0-candidates
           path: .cache/github-packages-0.1.0
-      - name: Verify provenance and publish in dependency order
-        run: node tools/publish-packages.mjs --publish
+      - name: Verify provenance and execute the approved operation
+        run: |
+          case "$RELEASE_OPERATION" in
+            publish-next) node tools/publish-packages.mjs --publish ;;
+            promote-latest) node tools/publish-packages.mjs --promote ;;
+            *) exit 2 ;;
+          esac
         env:
+          RELEASE_OPERATION: ${{ inputs.operation }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DSH_RELEASE_APPROVED_SHA: ${{ vars.DSH_RELEASE_APPROVED_SHA }}
+          DSH_RELEASE_PROMOTION_APPROVED_SHA: ${{ vars.DSH_RELEASE_PROMOTION_APPROVED_SHA }}
   mobile:
     needs: verify
     uses: ./.github/workflows/mobile.yml
