@@ -1,6 +1,7 @@
 # v0.1.0 候选、安装与发布
 
-当前已有本地及远端 CI 候选，尚未发布。公开仓库 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) 已创建并接入 origin；首次提交/推送与 CI 已获用户授权，执行证据见 M4 记录。CI 按 GitHub Actions 编写，发布目标为 GitHub Packages 的 npm registry `https://npm.pkg.github.com`。
+用户于 2026-10-15 授权首次发布 `0.1.0`，按既定流程先上传 GitHub Packages 的 `next`；实际结果见 [发布记录](release-readiness.md)。公开仓库为 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere)，CI 使用 GitHub Actions，npm registry 为 `https://npm.pkg.github.com`。
+此首发版本的独立 Noise/完整供应链审查、持续长期 fuzz、私密披露收件和 M3 平台验收仍未完成；本次发布授权不代表这些验证通过。此处仅涉及五个 npm 包，正式签名 App 分发仍保留。
 源码包继续保留 alpha 版本与工作区名称。普通候选写入 `.cache/release-0.1.0`；GitHub Packages 候选写入 `.cache/github-packages-0.1.0`，只在 staging 改版本、包名、内部引用、Cordis patch 和发布元数据。
 候选 manifest 记录源提交、工作区是否有未提交改动、锁文件及五个 tarball 的 SHA-256。首批本地验证曾为 sourceDirty=true；提交 `e4a1b32` 的远端候选已验证 sourceDirty=false，尚未创建发布标签。
 
@@ -52,7 +53,7 @@ GitHub Packages 要求包名使用所属账号的小写 scope，因此候选名�
 
 ## GitHub Actions 与发布门禁
 
-正式版本仍需要独立 Noise 审查、完整供应链复核、持续 fuzz 和私密披露收件验证。仓库归属已确认；`e4a1b32` 的协议/安全及移动 Android CI 已通过，来源与产物哈希已核验，见 [M4 记录](m4-summary.md)。后续发布必须验证最终标签的同一 SHA。
+独立 Noise 审查、完整供应链复核、持续 fuzz 和私密披露收件验证仍未完成。首发按上述用户授权执行，保留这些已知限制；最新既有 CI 与产物证据见 [M4 记录](m4-summary.md)。发布必须重新验证最终标签的同一 SHA。
 Android/iOS 最终产品验收仍按 M3 延期清单执行；此候选不宣称双端产品已验收。
 
 - `ci.yml`：Node/Dart、安全回归、互通、两端覆盖率 fuzz 短跑、Dart 故障注入/回放、候选独立安装与 Android AOT。
@@ -60,12 +61,12 @@ Android/iOS 最终产品验收仍按 M3 延期清单执行；此候选不宣称�
 - `fuzz.yml`：每天串行执行 Node DR/TCP 与 Dart DR/Noise/WS guard 覆盖率反馈 fuzz，各 900 秒/最多 100 万迭代，保存有界语料及报告；每次均有超时和容器限额。范围与盲区见 [Dart 入口](dart-fuzz.md)。
 - `publish.yml`：只手动 dispatch，必须选 `v0.1.0` 标签。先重跑同一标签的 CI 与 Android App 门禁，再下载该次 CI 的确切 tarball。`publish-next` 依序上传 `next`；`promote-latest` 只晋级已发布且哈希匹配的五包，不重新打包或发布版本。两种操作均需 environment 人工审核。
 
-`github-packages` environment 已配置审核人 `BruceZhang1993`，仅允许 tag `v0.1.0`。允许所有者审核自己的手动运行，这是维护者发布确认，不代表独立安全审查。私密漏洞报告已启用，收件/通知尚未验收。完成独立审查、平台供应链复核及披露渠道验证后，将 environment 变量 `DSH_RELEASE_APPROVED_SHA` 设为审核过的**完整提交 SHA**，记录审查证据；变量未设置或不匹配时发布脚本拒绝执行。审批针对具体候选/哈希/账号/registry/tag，不能只凭绿灯放行。
-仅发布 job 拥有 `packages:write`，使用该仓库 `GITHUB_TOKEN`；token 仅在发布步骤传入，不写进源码或候选包。manifest 必须 clean、与标签 SHA/仓库/锁文件一致。
+`github-packages` environment 已配置审核人 `BruceZhang1993`，仅允许 tag `v0.1.0`。允许所有者审核自己的手动运行，这是维护者发布确认，不代表独立安全审查。将 environment 变量 `DSH_RELEASE_APPROVED_SHA` 设为本次授权发布的**完整提交 SHA**，同时记录尚未完成的审查和验证；变量未设置或不匹配时发布脚本拒绝执行。审批针对具体候选/哈希/账号/registry/tag，不能只凭绿灯放行。
+仅发布 job 拥有 `packages:write`，使用该仓库 `GITHUB_TOKEN`；token 仅传入发布和注册表安装步骤，不写进源码或候选包。安装脚本禁用，安装完成后从诊断/DSH 子进程环境移除 token。manifest 必须 clean、与标签 SHA/仓库/锁文件一致。
 发布顺序为 protocol → core → tunnel → cli → plugin。预先查询全部现有版本：只有 E404 视为缺失，鉴权/网络错误直接停止；已有版本须与本地 SHA-512 完全一致。每个包发布后核对注册表完整性再继续；中途失败保留已发布包，可对同一候选重新验证续发，不自动删除或回放不匹配的版本。
-注册表不可用/短暂不可见时该次发布失败，维护者检查后再续发。正式发布后的消费者安装验证须另行记录，不能用上传前的 tarball 测试代替。
+注册表不可用/短暂不可见时该次发布失败，维护者检查后再续发。上传后 `tools/package-smoke.sh --registry` 使用全新目录/缓存，经 registry 安装五包和固定 DSH，核对安装锁文件的下载来源及 SHA-512，再执行 CLI 诊断与模拟模型的真实双宿主回归。结果上传为独立验收产物；它不证明其他账号的读取权限或真实模型验收，也不覆盖已有版本升级/回滚。
 
-注册表安装验收通过后，记录来源 SHA、五包 integrity、消费者环境、诊断/真实 DSH 回归及回滚结果，再将 environment 变量 `DSH_RELEASE_PROMOTION_APPROVED_SHA` 设为同一完整 SHA，并明确授权 `latest` 晋级。手动 dispatch 选择同一 `v0.1.0` 和 `promote-latest`；脚本先核对全部五个已发布版本，再按依赖顺序修改并读回 `latest`。缺少版本、哈希不同或批准变量不匹配时，在修改任何 tag 前拒绝。部分晋级失败保留已改 tag，停止后续包；核验后可对同一来源续跑，不自动回滚。当前两个批准变量均未设置，尚未发布或晋级。
+注册表安装验收通过后，记录来源 SHA、五包 integrity、消费者环境、诊断/真实 DSH 回归及回滚结果，再将 environment 变量 `DSH_RELEASE_PROMOTION_APPROVED_SHA` 设为同一完整 SHA，并明确授权 `latest` 晋级。手动 dispatch 选择同一 `v0.1.0` 和 `promote-latest`；脚本先核对全部五个已发布版本，再按依赖顺序修改并读回 `latest`。缺少版本、哈希不同或批准变量不匹配时，在修改任何 tag 前拒绝。部分晋级失败保留已改 tag，停止后续包；核验后可对同一来源续跑，不自动回滚。本次首发不设置晋级批准变量。
 
 发布前逐项核对见 [发布就绪清单](release-readiness.md)，Android 6 项声明补证见 [许可证复核](android-license-review.md)，Maven/native 与 JNI 来源见 [声明材料](android-notices.md)。
 

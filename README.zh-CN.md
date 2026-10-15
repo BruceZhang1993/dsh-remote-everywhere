@@ -6,8 +6,8 @@
 其他已启用该插件的 DSH 实例，也能接受它们的连接。同一套协议由 Android / iOS 原生 Flutter App
 实现，因此手机可以配对任意开启该能力的被控端。被控端支持免费、一键开启的公网隧道。
 
-> **状态：pre-alpha，M3 首版开发实现完成，M4 安全加固进行中。** Flutter 控制端位于
-> [apps/mobile](apps/mobile/README.md)，见 [M3 证据与延期项](docs/m3-summary.md) 和 [M4 首批记录](docs/m4-summary.md)。真机验收按用户要求暂缓，iOS 编译、移动端真实模型验收和发布仍待完成。
+> **状态：早期实现，M3 首版开发实现完成，M4 审查尚未完成。** Flutter 控制端位于
+> [apps/mobile](apps/mobile/README.md)，见 [M3 证据与延期项](docs/m3-summary.md) 和 [M4 首批记录](docs/m4-summary.md)。独立安全审查、iOS 编译和移动端真实模型验收仍待完成，真机验收按用户要求暂缓。npm `0.1.0` 首发使用 `next`，进度见 [发布记录](docs/release-readiness.md)。
 > 实际进度以 [docs/roadmap.md](docs/roadmap.md) 为准。
 
 ## 解决什么问题

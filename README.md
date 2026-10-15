@@ -8,7 +8,7 @@ accept connections from them. The same protocol is spoken by native Flutter apps
 iOS, so a phone can pair with any enabled controlled machine. The controlled side supports a free,
 one-click public tunnel.
 
-> **Status: pre-alpha; M3 initial development complete, M4 hardening underway.** Real DSH instances can pair and control sessions, with native GUI approvals, files and bounded terminal operations. The Flutter controller is in [apps/mobile](apps/mobile/README.md). See [M3 evidence and deferred acceptance](docs/m3-summary.md), [M4 results](docs/m4-summary.md) and [installation / rollback](docs/m2-install.md). Physical-device acceptance, iOS build validation, real-model mobile acceptance and publication remain pending.
+> **Status: early implementation; M3 initial development complete, M4 review incomplete.** Real DSH instances can pair and control sessions, with native GUI approvals, files and bounded terminal operations. The Flutter controller is in [apps/mobile](apps/mobile/README.md). See [M3 evidence and deferred acceptance](docs/m3-summary.md), [M4 results](docs/m4-summary.md) and [installation / rollback](docs/m2-install.md). Independent security review, physical-device acceptance, iOS build validation and real-model mobile acceptance remain pending. Initial npm `0.1.0` publication uses `next`; see the [release record](docs/release-readiness.md).
 
 ## What problem this solves
 

@@ -1,7 +1,7 @@
 # Security policy / 安全披露策略
 
-This project is pre-release. Local `0.1.0` tarballs are candidates, not published or independently audited releases.
-Private vulnerability reporting is enabled for this repository as of 2026-10-14. Receipt and maintainer notification have not been verified; that verification remains a release gate.
+The initial `0.1.0` npm publication is authorized for the `next` channel. Local tarballs alone do not prove publication. Independent Noise/supply-chain review, sustained fuzz and deferred platform acceptance remain incomplete; this version does not claim independent security approval. See the publication record in `docs/release-readiness.md`.
+Private vulnerability reporting is enabled for this repository as of 2026-10-14. Receipt and maintainer notification have not been verified and remain open follow-up requirements.
 The public GitHub repository [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) has been created. A private reporting form is prepared in `.github/VULNERABILITY_REPORT.yml`; the file alone does not enable reporting. The repository API now confirms it is enabled; maintainers still need to verify receipt and notifications. For a private repository, establish a reachable private maintainer channel instead. See [GitHub configuration](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
 Use [Report a vulnerability](https://github.com/BruceZhang1993/dsh-remote-everywhere/security/advisories/new) for private disclosure. If the form is unavailable, use an existing private contact with the maintainer. Do not open a public issue with an exploit or sensitive logs.
 
@@ -13,8 +13,8 @@ The security boundary is pinned Noise authentication plus explicit device capabi
 TLS and tunnels do not replace those checks. Local host compromise, traffic metadata and already-granted capabilities are outside the stated threat model.
 See `docs/security.md` and `docs/m4-summary.md` for the model, validation evidence and remaining independent review.
 
-本项目尚未正式发布。本地 `0.1.0` tarball 仅为候选产物，不代表注册表发布或独立安全审计完成。
-仓库 Private vulnerability reporting 已于 2026-10-14 启用，API 已核验；实际收件与维护者通知尚未验收，仍是正式发布门禁。
+用户已授权 `0.1.0` npm 首发至 `next`。本地 tarball 不证明注册表发布；独立 Noise/供应链审查、持续长期 fuzz 和延期平台验收仍未完成，此版本不宣称获得独立安全认可。发布状态见 `docs/release-readiness.md`。
+仓库 Private vulnerability reporting 已于 2026-10-14 启用，API 已核验；实际收件与维护者通知尚未验收，继续保留为后续要求。
 公开远程仓库 `BruceZhang1993/dsh-remote-everywhere` 已创建。已准备 `.github/VULNERABILITY_REPORT.yml` 私密报告表单，该文件不会自动开启报告功能；当前已启用，仍需维护者验证收件与通知，私有仓库则需落实可达的私密维护者渠道。
 请使用 [Report a vulnerability](https://github.com/BruceZhang1993/dsh-remote-everywhere/security/advisories/new) 私密入口；若无法使用，联系已有私密维护者渠道。不要在公开 issue 中贴利用方法或敏感日志。
 

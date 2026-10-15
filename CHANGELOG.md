@@ -5,6 +5,11 @@
 
 ---
 
+## 2026-10-15 — 0.1.0 首次 npm 发布流程
+
+- 用户明确授权首次发布 `0.1.0`；五包先发布至 GitHub Packages `next`，保留独立审查、长期 fuzz、私密收件与平台延期项，不自动晋级 `latest`。
+- 标签 workflow 重跑完整 CI/Android 门禁，核验同次产物后发布；新增全新目录/缓存的注册表安装、来源/SHA-512 核对及 CLI/双宿主回归，验收记录独立上传。实际执行结果见 [发布记录](docs/release-readiness.md)。
+
 ## 2026-10-15 — M4 Dart fuzz 与 Android 声明材料（未发布）
 
 - 新增 Dart VM 覆盖率反馈，覆盖 DR、Noise 握手/transport 和 WebSocket receive guard；有界合成语料、失败输入保存及单输入回放。4 项隔离故障注入验证 oracle 和错误分类；Dart 58/58、本机短跑及新增远端 CI 通过。
