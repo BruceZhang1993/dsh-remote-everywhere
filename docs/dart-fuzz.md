@@ -25,6 +25,7 @@ tools/run-limited.sh env DART_BIN=/home/bruce/Android/flutter/bin/dart python3 t
 ```
 
 启动日志中的临时 VM URL/auth code 被过滤；故障注入测试仅操作隔离副本，不改生产文件。其四项检查验证有效重组、注入数据丢失后失败并保存输入、恢复实现后回放成功，以及非预期 StateError 不能被当成格式拒绝吞掉。
+2026-10-15 另在本机临时副本注入同步无限循环，实际 watchdog 约 70.3 秒后退出 124，保留最后输入及 `passed=false`；此项不是 CI 四项检查的一部分，证据见 [M4 记录](m4-summary.md)。
 
 ## 未覆盖
 

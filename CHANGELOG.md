@@ -8,7 +8,7 @@
 ## 2026-10-15 — M4 Dart fuzz 与 Android 声明材料（未发布）
 
 - 新增 Dart VM 覆盖率反馈，覆盖 DR、Noise 握手/transport 和 WebSocket receive guard；有界合成语料、失败输入保存及单输入回放。4 项隔离故障注入验证 oracle 和错误分类；Dart 58/58、本机短跑及新增远端 CI 通过。
-- 每日 fuzz 改为 Node/Dart 各 900 秒串行，保持容器限额；持续观察与未覆盖状态机仍是发布门禁，运行证据见 [M4](docs/m4-summary.md)。
+- 每日 fuzz 改为 Node/Dart 各 900 秒串行，首次远端运行分别 403806/178070 次变异通过并核验产物；本机同步卡死场景确认 watchdog 终止并保留输入。最新完整 CI `74c271a` 通过；此前一次 MCP 失败未定因，已加诊断。持续观察与未覆盖状态机仍是发布门禁，证据见 [M4](docs/m4-summary.md)。
 - 扫描 86 个 Maven 坐标的声明与 native 条目，整理已有 APK 的来源链和 JNI 官方 archive 匹配材料；完整许可、平台二进制及独立 Noise 审查继续保留。未创建发布标签或上传正式包。
 
 ## 2026-10-14 — M4 GitHub 发布准备与覆盖率 fuzz（未发布）

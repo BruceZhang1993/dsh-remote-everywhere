@@ -145,11 +145,26 @@ SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建�
 提交 `b1f2200` 增加入口与 CI；[移动 Android workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687135971) 成功，iOS 不计通过。首次扩展长跑在安装 Dart 时因缺 unzip 失败，目标尚未运行；提交 `46a3dc5c4eda455230dfa01f4dd140528b24a82e` 补齐工具后，[协议/安全与 Android AOT workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687371586) 成功，含两端短跑和 Dart 故障回放检查。
 该次 CI 的五个候选包来源为 clean 的 `46a3dc5`，下载后大小、SHA-256、包名/版本和锁文件均匹配 manifest；Dart 短跑产物为 1812 次变异、623 个命中位置、35 条语料，源码/夹具/锁文件哈希均匹配。`b1f2200` 移动 APK SHA-256 为 `c302ec7b22c3883015a8410570ddabec7b01f5a4c2af470696355eda86fd99a8`，v2 签名和 16 KiB zipalign 校验通过，但签名仍为 Android Debug。新 APK 不冒充下述 `e4a1b32` native 审查基线。
 
-每日 workflow 现串行 Node/Dart 各 900 秒，8 GiB / 4 GiB swap 容器、job 40 分钟上限；手动 [长跑](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687371773) 对应 `46a3dc5`，结果与产物尚待核验。单次成功也不关闭持续长期门禁；SDK socket/control callback、RemoteConnection 生命周期/重连竞速和 Node Noise 仍不在新增覆盖反馈范围内。
+每日 workflow 现串行 Node/Dart 各 900 秒，8 GiB / 4 GiB swap 容器、job 40 分钟上限；手动 [长跑](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687371773) 对应 `46a3dc5`，整体 **success**，两份报告与语料均已下载核验。单次成功也不关闭持续长期门禁；SDK socket/control callback、RemoteConnection 生命周期/重连竞速和 Node Noise 仍不在新增覆盖反馈范围内。
+
+| 900 秒入口 | 变异次数 | 执行覆盖反馈 | 最终语料 | 实际时长 |
+|---|---:|---|---:|---:|
+| Node DR/TCP | 403806 | V8 范围 38 → 38，新增覆盖输入 0 | 21 | 900001 ms |
+| Dart DR/guard/Noise | 178070 | VM token-position 621 → 623，新增覆盖输入 2 | 35 | 900003 ms |
+
+Dart 三个目标命中位置分别为 60/169/394；位置/范围不是百分比，新增覆盖输入不代表漏洞。源码、Dart 夹具/锁文件哈希均匹配；输入大小、语料数与文件大小在预算内，Node 无 failure.json。下载目录 `.cache/m4/fuzz-46a3dc5/{node,dart}`，完整日志 `.cache/m4/fuzz-46a3dc5.log`。
+Node report/corpus SHA-256 为 `7332d31545ab3855a47f67c2ed01ed2a5b615a9d648eabed0b160f81e9e20697` / `40d5357688c9dbf657c02ca43db0d08fed8ee0d4145d17ee96b1ca20c5f663e6`；Dart report/corpus 为 `d5a6f44f3d347158133839e9ef1155e3dbbb5498a9829dbc0f65d61c9cd937ae` / `1a7c5123529c515e393f8edd4ae64a9dba01d2641303b948126a6d6e88f458a4`。
 
 `tools/android-notices.py` 对当前 91 个产物/86 个坐标逐一核验哈希后扫描声明：11 个坐标有内嵌声明，保留 4 份不同文本及 15 个原始 native 条目，一层扫描无未检查 JAR。已有 `e4a1b32` APK 的 18 个 native 文件中，9 个与 Maven 原始条目一致，3 个 Flutter engine 串起 Maven → merged → stripped → APK 链；其余应用/JNI 的跨环境字节一致性未证明。
 `jni 1.1.0` 官方 archive 与锁文件哈希一致，181 个文件与安装源码全部匹配，JNI 构建入口与混合 BSD/Apache 声明已整理。详细边界和复现入口见 [Android 声明材料](android-notices.md)。Camera BSD 来源、ML Kit/SDK 条款与隐私、最终签名二进制、其余 plugin/Apple 和独立审查继续保留。
 
 本机材料包 `.cache/m4/android-notice-review-20261015.zip` 已准备，未对外发送。生成材料的 `independentlyApproved` 为 false，不能视为分发批准。声明文本包 SHA-256 `5cbbfcfa7051781df653cbc6e56eb316426a55bf6d0bbba99678fc1f63b5a20b`，manifest SHA-256 `305d80f2e6bd389bc87c3c1d8558670a65b35ac0ca773b163373e61d9aeb5d67`。
 
-材料提交 `b0a97f7` 的 [协议 CI](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38688529442) 在候选安装后的真实 DSH MCP 断言失败，Android AOT 通过；前面的协议/安全、Dart fuzz 与故障注入均通过。该断言原来未输出错误码，本轮增加仅含失败请求编号/有界错误码的断言诊断。本机完整候选安装回归未复现；暂不认定原因或宣称已修复，远端重跑结果另行记录。
+材料提交 `b0a97f7` 的 [协议 CI](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38688529442) 在候选安装后的真实 DSH MCP 断言失败，Android AOT 通过；前面的协议/安全、Dart fuzz 与故障注入均通过。该断言原来未输出错误码，本轮增加仅含失败请求编号/有界错误码的断言诊断。本机完整候选安装回归未复现；暂不认定原因或宣称已修复，重跑结果见下一段。
+
+诊断提交 `74c271afc601b07fa2242a8a84f4480ecd2f41cb` 的 [完整 CI](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38689068341) **success**：protocol-core 与 android-aot 均通过，包括 Node 68/68、Dart 58/58、4 项故障回放、真实 DSH 候选安装和 15/15 发布门禁。五包 clean 来源/大小/哈希与新短跑报告已下载核验；该短跑为 1662 次变异。本机另连续 3 次双宿主回归通过，日志 `.cache/m4/mcp-host-repeat.log`。此前一次 MCP 失败尚未定因，保留诊断和观察项；后续绿色结果不视为已证明修复该次失败。
+
+本机另做一次临时副本的同步卡死故障注入，执行实际 `dart-fuzz.sh` watchdog（10 秒预算 +60 秒宽限）。约 70.3 秒后退出 124；report 保持 `passed=false/status=running`，最后合成输入完整保留，生产文件未修改。证据 `.cache/m4/dart-watchdog-evidence.json` 与 `.cache/m4/dart-watchdog.log`。这是本机补验，不计入 CI 的四项 oracle 检查。
+审查 ZIP SHA-256 `426472656b5a292d4852852aab46cbe1fad9b8461b9be5ea1e2dd775cf940af3`，233202 bytes；ZIP 条目与原始库存、补证、生成工具和 README 均已比对一致。再次只读确认私密报告仍启用，environment 变量列表为空，远端不存在 `v0.1.0`；没有进行注册表写入。
+
+最终证据回填仅修改文档并以 `[skip ci]` 同步；完整 CI 对应 `74c271a`，移动 APK 对应 `b1f2200`，串行长跑对应 `46a3dc5`，native 材料的 APK 基线为 `e4a1b32`。以上不混用为最终正式标签/签名产物；M3 延期项、独立审查与实际发布仍待完成。

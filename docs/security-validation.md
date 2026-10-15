@@ -39,6 +39,7 @@ SDK 最终收到规范化的完整 binary message，继续负责 outbound maskin
 
 2026-10-15 新增 [Dart 覆盖率反馈入口](dart-fuzz.md)，以 VM 累计 token-position Coverage 保留新命中输入，覆盖 DR、WebSocket receive guard 与 Noise 握手/transport。单输入 ≤1024 字节、语料 ≤256 条；外层 watchdog 与 VM 请求限额均启用。使用合成身份/密钥，不读取真实状态。
 本机 10 秒短跑、Dart 58/58 和 4 项隔离故障注入/回放检查通过；`46a3dc5` 的协议/安全 CI（含新短跑与故障检查）通过。每日 workflow 改为串行 Node/Dart 各 900 秒；结果见 [M4 记录](m4-summary.md)。SDK socket/control callback、RemoteConnection 生命周期/重连竞速、Node Noise 和持续长期证据仍未完成。
+`46a3dc5` 的首次串行长跑已通过并核验产物：Node 403806 次变异、38 个范围、21 条语料；Dart 178070 次变异、623 个位置、35 条语料。本机另以同步卡死副本验证 watchdog 退出 124、保留最后输入及失败状态。完整最新 CI 对应 `74c271a`；此前一次候选 MCP 失败未复现，诊断与观察项仍保留。
 
 ## 供应链复核
 
