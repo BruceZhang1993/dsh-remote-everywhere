@@ -1,6 +1,6 @@
 # v0.1.0 候选、安装与发布
 
-用户于 2026-10-15 授权首次发布 `0.1.0`，按既定流程先上传 GitHub Packages 的 `next`；实际结果见 [发布记录](release-readiness.md)。公开仓库为 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere)，CI 使用 GitHub Actions，npm registry 为 `https://npm.pkg.github.com`。
+`0.1.0` 五包已于 2026-10-15 按用户授权完成 GitHub Packages 首发（命令 tag 为 `next`），来源为 `v0.1.0` / `5556e67`；注册表完整性及全新消费者安装验收通过，见 [发布记录](release-0.1.0.md)。公开仓库为 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere)，CI 使用 GitHub Actions，npm registry 为 `https://npm.pkg.github.com`。
 此首发版本的独立 Noise/完整供应链审查、持续长期 fuzz、私密披露收件和 M3 平台验收仍未完成；本次发布授权不代表这些验证通过。此处仅涉及五个 npm 包，正式签名 App 分发仍保留。
 源码包继续保留 alpha 版本与工作区名称。普通候选写入 `.cache/release-0.1.0`；GitHub Packages 候选写入 `.cache/github-packages-0.1.0`，只在 staging 改版本、包名、内部引用、Cordis patch 和发布元数据。
 候选 manifest 记录源提交、工作区是否有未提交改动、锁文件及五个 tarball 的 SHA-256。首批本地验证曾为 sourceDirty=true；提交 `e4a1b32` 的远端候选已验证 sourceDirty=false，尚未创建发布标签。
@@ -72,7 +72,7 @@ Android/iOS 最终产品验收仍按 M3 延期清单执行；此候选不宣称�
 
 ## 注册表安装（发布后）
 
-即使包公开，GitHub npm registry 安装仍需要认证；维护者须设置并核验包的可见性，首次发布默认私有。参见 [GitHub npm registry 官方说明](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry)。
+即使包公开，GitHub npm registry 安装仍需要认证。本次五包已在未登录的 GitHub Public 筛选列表中核验可见，没有手动修改可见性；其他账号的 registry 认证/读取仍需单独核验。参见 [GitHub npm registry 官方说明](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry)。
 在隔离 profile 的 `.npmrc` 写入以下配置，scope 使用仓库账号的小写形式 `brucezhang1993`，保留 token 的环境变量引用：
 
 ```ini

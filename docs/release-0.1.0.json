@@ -1,0 +1,106 @@
+{
+  "version": "0.1.0",
+  "registry": "https://npm.pkg.github.com",
+  "publishTag": "next",
+  "sourceCommit": "5556e674941b01451e90c428b20b44e1c24e4eae",
+  "gitTag": "v0.1.0",
+  "tagObject": "0d525a5a9861035b637c9f722891d31d5b42f982",
+  "workflowRun": {
+    "id": 38692126864,
+    "url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38692126864",
+    "conclusion": "success"
+  },
+  "publicationWindowUTC": "2026-10-15T06:39:45Z/2026-10-15T06:39:49Z",
+  "manifestSha256": "71b93461deda96f06b5e6ba15fe91215e9430582ddc6c71200d2007fda3d73f7",
+  "consumerReceiptSha256": "08acf8fd3b09cf6d257b801af4ab04374886de0ad76ae306371ec58545a9bcce",
+  "packages": [
+    {
+      "name": "@brucezhang1993/dsh-remote-protocol",
+      "version": "0.1.0",
+      "sha256": "587c47e9959e42da89439769451863cb7ad0b32e8b3ac569846155b2ea80475a",
+      "integrity": "sha512-bhTsCcWRhTUJqmOS8cd/5VamSJtZJS4saXNQrPSbCPhLwD1CIe3QEdrSnGwhJ08cuj0iAsRqErfrf/35Lz5bBA=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-core",
+      "version": "0.1.0",
+      "sha256": "f93a7c219eec7c61faa321e36ca0362a196766ad1b1e77de30ffb056df3a00b1",
+      "integrity": "sha512-0CUMFhUOTcWjN0EAI5g/1GPbuwOq+om7C7uF66QWbuWWKy4iDWxnrtXXlQRmk3OknFLzepV/aupvS/uBx+BbkQ=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-tunnel",
+      "version": "0.1.0",
+      "sha256": "00a231b2e296aff78265c5555d98bcecf72dd44a93979e70fced66805c2fc104",
+      "integrity": "sha512-Zb61fzikgopOEEeCQfkovxFvEvv4tffGM3w8MSP/2KD5Ci0kvxNZxRjhbAqE/e5p9lszm8RG86HSE7DO+UVrSw=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-cli",
+      "version": "0.1.0",
+      "sha256": "fde0187193c8884d8f4b83961b13d2e6e34cf34e3a935ba6a475bc993ec96f06",
+      "integrity": "sha512-nM/6G60gAEGJBLBlhFOHn/6C1arI03otKXiPv9UpcnRID3VHSB3fndhFRO/8HB+UvOjJdOGCZ+Ihwrgyfn58Hg=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-everywhere",
+      "version": "0.1.0",
+      "sha256": "f1fd69a4afac5d10560e94e5e490c916e7445dd61b19fb0ea708c63995088a86",
+      "integrity": "sha512-EU8nze18Y6s6QAukGenS2ExInl/55Ajqr7nF4hE/wjCrvU+daYuGGkCbSTHPyQ11Rx5daxfvgnY9WXqRn+89tg=="
+    }
+  ],
+  "consumerAcceptance": {
+    "passed": true,
+    "sourceCommit": "5556e674941b01451e90c428b20b44e1c24e4eae",
+    "registry": "https://npm.pkg.github.com",
+    "runId": "38692126864",
+    "node": "v22.23.3",
+    "installScripts": false,
+    "freshCache": true,
+    "diagnostic": true,
+    "genuineDshProcesses": 2,
+    "deterministicModelFixture": true,
+    "packages": [
+      {
+        "name": "@brucezhang1993/dsh-remote-protocol",
+        "version": "0.1.0",
+        "integrity": "sha512-bhTsCcWRhTUJqmOS8cd/5VamSJtZJS4saXNQrPSbCPhLwD1CIe3QEdrSnGwhJ08cuj0iAsRqErfrf/35Lz5bBA=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-core",
+        "version": "0.1.0",
+        "integrity": "sha512-0CUMFhUOTcWjN0EAI5g/1GPbuwOq+om7C7uF66QWbuWWKy4iDWxnrtXXlQRmk3OknFLzepV/aupvS/uBx+BbkQ=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-tunnel",
+        "version": "0.1.0",
+        "integrity": "sha512-Zb61fzikgopOEEeCQfkovxFvEvv4tffGM3w8MSP/2KD5Ci0kvxNZxRjhbAqE/e5p9lszm8RG86HSE7DO+UVrSw=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-cli",
+        "version": "0.1.0",
+        "integrity": "sha512-nM/6G60gAEGJBLBlhFOHn/6C1arI03otKXiPv9UpcnRID3VHSB3fndhFRO/8HB+UvOjJdOGCZ+Ihwrgyfn58Hg=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-everywhere",
+        "version": "0.1.0",
+        "integrity": "sha512-EU8nze18Y6s6QAukGenS2ExInl/55Ajqr7nF4hE/wjCrvU+daYuGGkCbSTHPyQ11Rx5daxfvgnY9WXqRn+89tg=="
+      }
+    ],
+    "cleanup": "isolated profile removed on exit; upgrade and previous-version rollback not tested"
+  },
+  "packageVisibility": {
+    "observed": "public",
+    "surface": "GitHub package list with Public filter while signed out",
+    "url": "https://github.com/BruceZhang1993?tab=packages&visibility=public",
+    "manuallyChanged": false
+  },
+  "promotion": {
+    "executed": false,
+    "approvalVariableSet": false,
+    "distTagsIndependentlyReadBack": false
+  },
+  "remaining": [
+    "independent Noise and complete supply-chain review",
+    "sustained fuzz observation and uncovered state machines",
+    "private vulnerability report receipt and notifications",
+    "M3 device, real-model, full UI and iOS/macOS acceptance",
+    "other-account registry access and previous-version upgrade/rollback"
+  ]
+}

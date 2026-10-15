@@ -7,6 +7,7 @@
 
 ## 2026-10-15 — 0.1.0 首次 npm 发布流程
 
+- 首发完成：`v0.1.0` 固定 `5556e67`，五包已上传 GitHub Packages（发布命令 tag 为 `next`），registry SHA-512 和全新安装/CLI/真实双宿主回归通过；完整发布 workflow success。五包公开页面已核验可见，未手动改可见性；未执行 latest 晋级，独立/平台验收保留，见 [发布记录](docs/release-0.1.0.md)。
 - 用户明确授权首次发布 `0.1.0`；五包先发布至 GitHub Packages `next`，保留独立审查、长期 fuzz、私密收件与平台延期项，不自动晋级 `latest`。
 - 标签 workflow 重跑完整 CI/Android 门禁，核验同次产物后发布；新增全新目录/缓存的注册表安装、来源/SHA-512 核对及 CLI/双宿主回归，验收记录独立上传。实际执行结果见 [发布记录](docs/release-readiness.md)。
 

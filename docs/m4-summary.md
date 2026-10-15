@@ -1,7 +1,7 @@
 # M4 加固与验证记录
 
 日期：2026-10-15。基线 `475ea94`，分支 `feature/20261013-m4Hardening`。
-状态：**接收加固、统一审计、scoped 候选、远端 CI、Dart 覆盖率反馈入口与 Android 声明材料已准备；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
+状态：**接收加固、统一审计、scoped 候选、远端 CI、Dart 覆盖率反馈入口与 Android 声明材料已准备；五包 0.1.0 首发及注册表安装验收已完成；独立/平台审查、持续长期 fuzz 与 latest 晋级未完成**。
 用户已创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，origin 已接入；默认 master，Actions 已启用。用户明确授权后，M4 实现提交 `f266b56` 首次推送至 origin/master，远端 SHA 已核对一致。CI 首轮结果及修复见下方。
 远端初次核验时 private vulnerability reporting 未启用、environment 列表为空；2026-10-14 后续已启用报告并配置 `github-packages` environment，见下方发布收口记录。批准 SHA 和私密收件验收仍未完成，尚未发布。
 
@@ -168,3 +168,12 @@ Node report/corpus SHA-256 为 `7332d31545ab3855a47f67c2ed01ed2a5b615a9d648eabed
 审查 ZIP SHA-256 `426472656b5a292d4852852aab46cbe1fad9b8461b9be5ea1e2dd775cf940af3`，233202 bytes；ZIP 条目与原始库存、补证、生成工具和 README 均已比对一致。再次只读确认私密报告仍启用，environment 变量列表为空，远端不存在 `v0.1.0`；没有进行注册表写入。
 
 最终证据回填仅修改文档并以 `[skip ci]` 同步；完整 CI 对应 `74c271a`，移动 APK 对应 `b1f2200`，串行长跑对应 `46a3dc5`，native 材料的 APK 基线为 `e4a1b32`。以上不混用为最终正式标签/签名产物；M3 延期项、独立审查与实际发布仍待完成。
+
+## 2026-10-15 0.1.0 首发
+
+用户随后明确要求首次发布版本包 `0.1.0`。按此授权执行五个 npm 包的 `next` 首发，继续如实保留上述独立审查、持续观察、私密收件和 M3 平台延期项；不将发布授权视为这些验证通过。
+提交 `5556e674941b01451e90c428b20b44e1c24e4eae` 增加发布后全新 registry 安装、来源/SHA-512 核对和验收产物；本机候选安装/双宿主回归、15 项发布门禁、actionlint、缺少安装凭据时的拒绝检查通过。使用 `[skip ci]` 避免重复 push 检查，随后在固定 `v0.1.0` 标签的手动发布流程中重新执行全部 CI/Android 门禁，未跳过发布验证。
+
+[首次发布 workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38692126864) **success**，最终标签的协议/安全、Android AOT、Flutter Android 均通过；iOS skipped。下载同次五包后核对 clean 来源、锁文件、大小、SHA-256、包名/版本及 LICENSE/SECURITY，再固定发布批准 SHA 并按授权完成环境审批。五包依赖顺序上传 `0.1.0`，成功日志 tag 为 `next`，逐包 registry SHA-512 一致。
+全新目录/缓存注册表安装后的五包下载来源与 SHA-512、CLI 加密诊断和模拟模型的真实双宿主回归通过。已下载并比对最终验收 JSON 与上传前五包哈希，来源、manifest 完全匹配；五包公开页面在未登录 Public 筛选中可见。其他账号 registry 权限、真实模型和已有版本升级/回滚未验收。
+`DSH_RELEASE_APPROVED_SHA` 固定为 `5556e67` 完整 SHA；晋级批准变量未设置，没有执行 `promote-latest`，本机独立读回 dist-tags 仍因权限不足返回 E403。完整来源与证据见 [首发记录](release-0.1.0.md)及 [JSON](release-0.1.0.json)。后续仅回填文档，不移动标签或修改已发布版本。

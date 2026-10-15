@@ -1,6 +1,6 @@
 # v0.1.0 candidate, installation and release
 
-The user authorized the initial `0.1.0` npm publication on 2026-10-15, using GitHub Packages and the `next` channel. Actual publication results are tracked in the [release record](release-readiness.md). The repository is [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere); CI uses GitHub Actions and the registry is `https://npm.pkg.github.com`.
+All five `0.1.0` packages were published on 2026-10-15 under the user's authorization, with the command tag `next`, from `v0.1.0` / `5556e67`. Registry integrity and fresh consumer installation passed; see the [release record](release-0.1.0.md). The repository is [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere); CI uses GitHub Actions and the registry is `https://npm.pkg.github.com`.
 Independent Noise/full supply-chain review, sustained fuzz, private-report receipt and deferred M3 platform acceptance remain incomplete. Publication does not assert that these checks passed. This flow covers five npm packages; signed App distribution remains separate.
 Source packages retain their alpha names/versions. Standard candidates use `.cache/release-0.1.0`; GitHub candidates use `.cache/github-packages-0.1.0`. Only staging changes package names, imports, Cordis patch, versions and publication metadata.
 The manifest records the source commit, dirty-workspace flag, lockfile hash and five tarball SHA-256 hashes. A dirty candidate is not a committed release tag.
@@ -72,7 +72,7 @@ See the [release readiness checklist](release-readiness.md), [Android declaratio
 
 ## Registry installation (after publication)
 
-GitHub's npm registry requires authentication even for public packages; new packages default to private. Verify visibility and permissions explicitly. See [official GitHub npm registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry).
+GitHub's npm registry requires authentication even for public packages. All five packages were visible in GitHub's Public filter while signed out; visibility was not manually changed. Other-account registry credentials/access remain unverified. See [official GitHub npm registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry).
 In the isolated profile `.npmrc`, use the lowercase repository scope and retain the environment reference:
 
 ```ini

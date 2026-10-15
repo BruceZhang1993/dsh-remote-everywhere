@@ -12,7 +12,7 @@
 | M4-2 威胁模型与模糊测试 | 重放、降级、身份/流混淆；固定 seed 回归及 Node/Dart 覆盖率反馈 | 不重复派发写入，鉴权失败不进入业务；非法输入只产生预期错误 | 本地矩阵、340000 样本压力通过；Node DR/TCP 首次远端 900 秒通过；Dart DR/Noise/WS guard 入口、4 项故障注入/回放及短跑 CI 通过；串行长跑见 [M4 记录](m4-summary.md)，持续周期及未覆盖范围保留 |
 | M4-3 审计与供应链 | 精确锁定修复依赖；核对审计内容、容量、轮转与鉴权事件；独立审查 Noise | 依赖公告复核，轮转回归、敏感字段排除、第三方书面审查 | **审计本地收口**；Node audit 0、Node/Dart 库存及 Android 86 坐标哈希/OSV 0 已记录；六项声明补证、Maven/native 声明和 JNI 来源材料已准备；完整分发审查、平台二进制与第三方 Noise 审查待完成 |
 | M4-4 发布准备 | LICENSE、SECURITY.md、双语安装/回滚，GitHub owner-scoped 候选、来源/哈希门禁 | 独立安装、不启用 install scripts；workflow 静态与发布拒绝路径回归 | **本地与首次远端 CI 收口**：scoped 五包、actionlint 与 15/15 发布/晋级门禁回归通过；`e4a1b32` 两条 workflow 全绿，候选来源/哈希与 APK 签名/对齐已复核；私密入口和发布 environment 已配置，收件与批准 SHA 待验收 |
-| M4-5 正式发布 | 手动标签门禁、保护 environment、批准 SHA、依赖顺序、next 发布与 latest 晋级 | 注册表 SHA-512 与发布后独立安装；操作前获得具体发布授权 | 脚本/workflow 已准备，实际发布未执行 |
+| M4-5 正式发布 | 手动标签门禁、保护 environment、批准 SHA、依赖顺序、next 发布与 latest 晋级 | 注册表 SHA-512 与发布后独立安装；操作前获得具体发布授权 | 用户授权后五包 `0.1.0` 首发及 workflow 内全新 registry 安装通过，见 [发布记录](release-0.1.0.md)；latest 未执行，独立审查/延期验收保留 |
 
 本地命令始终通过 `tools/run-limited.sh`，8 GiB 内存 / 4 GiB swap，重任务串行；不提高或绕过限制。
 新安全用例已纳入 `pnpm test` 和 Dart 默认测试，现有 CI 会执行它们；workflow 配置不等于远端执行结果。
