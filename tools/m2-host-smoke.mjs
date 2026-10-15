@@ -287,7 +287,9 @@ try {
     { id: 4, method: 'tools/call', params: { name: 'remote_run', arguments: { deviceId: ab.peer.deviceId, sessionId: mcpSession.sessionId, text: 'M2 MCP run', requestId: 'm2-mcp-run' } } },
   ])
   assert.equal(mcpResponses.length, 4)
-  assert(mcpResponses.every(message => message.result && !message.result.isError))
+  assert(mcpResponses.every(message => message.result && !message.result.isError), JSON.stringify(mcpResponses
+    .filter(message => !message.result || message.result.isError)
+    .map(message => ({ id: message.id, code: message.error?.code ?? message.result?.content?.[0]?.text?.slice(0, 80) }))))
   const pluginInfo = JSON.parse(readFileSync(join(pluginRoot, 'package.json'), 'utf8'))
   assert.deepEqual(mcpResponses.find(message => message.id === 1).result.serverInfo, { name: pluginInfo.name, version: pluginInfo.version })
   const mcpRun = JSON.parse(mcpResponses.find(message => message.id === 4).result.content[0].text)

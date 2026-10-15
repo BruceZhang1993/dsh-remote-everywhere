@@ -33,7 +33,7 @@ echo/event recovery and optional Quick Tunnel. The CLI currently operates on dia
 | [docs/m2-summary.md](docs/m2-summary.md) | **M2 plugin delivery and acceptance evidence** |
 | [docs/m3-summary.md](docs/m3-summary.md) | **M3 mobile implementation, local evidence and pending acceptance** |
 | [docs/m4-summary.md](docs/m4-summary.md) | **M4 receive limits, security/fuzz tests and dependency advisory review** |
-| [docs/release.en.md](docs/release.en.md) | Local v0.1.0 candidates, installation/rollback and GitHub Packages flow; repository connected at BruceZhang1993/dsh-remote-everywhere; initial sync/CI authorized; execution evidence tracked in M4 results |
+| [docs/release.en.md](docs/release.en.md) | Local/CI v0.1.0 candidates, installation/rollback and GitHub Packages flow; code synchronized and protocol/security plus Android CI passed; exact sources, artifacts and remaining gates tracked in M4 results and the [readiness checklist](docs/release-readiness.md) |
 | [SECURITY.md](SECURITY.md) | Disclosure policy and the pending private reporting channel |
 | [docs/m1-summary.md](docs/m1-summary.md) | **M1 delivery and validation** — packages, CLI, evidence and the remaining integration boundary |
 | [docs/m0-summary.md](docs/m0-summary.md) | **M0 validation results** — what was proven, what was disproven, and the architecture changes it forced |

@@ -1,6 +1,6 @@
 # M4 加固与验证记录
 
-日期：2026-10-14。基线 `475ea94`，分支 `feature/20261013-m4Hardening`。
+日期：2026-10-15。基线 `475ea94`，分支 `feature/20261013-m4Hardening`。
 状态：**接收加固、统一审计、scoped 候选、远端 CI、Dart 覆盖率反馈入口与 Android 声明材料已准备；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
 用户已创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，origin 已接入；默认 master，Actions 已启用。用户明确授权后，M4 实现提交 `f266b56` 首次推送至 origin/master，远端 SHA 已核对一致。CI 首轮结果及修复见下方。
 远端初次核验时 private vulnerability reporting 未启用、environment 列表为空；2026-10-14 后续已启用报告并配置 `github-packages` environment，见下方发布收口记录。批准 SHA 和私密收件验收仍未完成，尚未发布。
@@ -143,6 +143,7 @@ SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建�
 日志 `.cache/m4/dart-fuzz-{regression,gates,smoke}.log`。曾发现跨会话测试夹具复用临时密钥，现已按合成 sid 派生不同临时密钥并显式断言不同 transport keys；这是夹具修正，不计为生产漏洞。
 
 提交 `b1f2200` 增加入口与 CI；[移动 Android workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687135971) 成功，iOS 不计通过。首次扩展长跑在安装 Dart 时因缺 unzip 失败，目标尚未运行；提交 `46a3dc5c4eda455230dfa01f4dd140528b24a82e` 补齐工具后，[协议/安全与 Android AOT workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687371586) 成功，含两端短跑和 Dart 故障回放检查。
+该次 CI 的五个候选包来源为 clean 的 `46a3dc5`，下载后大小、SHA-256、包名/版本和锁文件均匹配 manifest；Dart 短跑产物为 1812 次变异、623 个命中位置、35 条语料，源码/夹具/锁文件哈希均匹配。`b1f2200` 移动 APK SHA-256 为 `c302ec7b22c3883015a8410570ddabec7b01f5a4c2af470696355eda86fd99a8`，v2 签名和 16 KiB zipalign 校验通过，但签名仍为 Android Debug。新 APK 不冒充下述 `e4a1b32` native 审查基线。
 
 每日 workflow 现串行 Node/Dart 各 900 秒，8 GiB / 4 GiB swap 容器、job 40 分钟上限；手动 [长跑](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687371773) 对应 `46a3dc5`，结果与产物尚待核验。单次成功也不关闭持续长期门禁；SDK socket/control callback、RemoteConnection 生命周期/重连竞速和 Node Noise 仍不在新增覆盖反馈范围内。
 
@@ -150,3 +151,5 @@ SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建�
 `jni 1.1.0` 官方 archive 与锁文件哈希一致，181 个文件与安装源码全部匹配，JNI 构建入口与混合 BSD/Apache 声明已整理。详细边界和复现入口见 [Android 声明材料](android-notices.md)。Camera BSD 来源、ML Kit/SDK 条款与隐私、最终签名二进制、其余 plugin/Apple 和独立审查继续保留。
 
 本机材料包 `.cache/m4/android-notice-review-20261015.zip` 已准备，未对外发送。生成材料的 `independentlyApproved` 为 false，不能视为分发批准。声明文本包 SHA-256 `5cbbfcfa7051781df653cbc6e56eb316426a55bf6d0bbba99678fc1f63b5a20b`，manifest SHA-256 `305d80f2e6bd389bc87c3c1d8558670a65b35ac0ca773b163373e61d9aeb5d67`。
+
+材料提交 `b0a97f7` 的 [协议 CI](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38688529442) 在候选安装后的真实 DSH MCP 断言失败，Android AOT 通过；前面的协议/安全、Dart fuzz 与故障注入均通过。该断言原来未输出错误码，本轮增加仅含失败请求编号/有界错误码的断言诊断。本机完整候选安装回归未复现；暂不认定原因或宣称已修复，远端重跑结果另行记录。

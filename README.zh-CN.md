@@ -22,7 +22,7 @@ DSH 在本地和自带 Web GUI 中很好用，但缺少以下能力：
 
 ## 文档
 
-M4 的本地候选、安装/回滚和 GitHub Packages 发布流见 [发布说明](docs/release.md)，安全披露策略见 [SECURITY.md](SECURITY.md)。GitHub Actions 配置已准备；远程仓库 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere) 已创建并接入 origin；首次代码同步与 CI 已获用户授权；执行结果见 M4 记录，候选不代表注册表已发布。
+M4 的候选、安装/回滚和 GitHub Packages 发布流见 [发布说明](docs/release.md)，安全披露策略见 [SECURITY.md](SECURITY.md)。代码已同步至 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere)，协议/安全与 Android CI 已通过；确切提交、产物和未完成门禁见 [M4 记录](docs/m4-summary.md)及 [发布就绪清单](docs/release-readiness.md)，候选不代表注册表已发布。
 
 M1 诊断入口：`pnpm install --frozen-lockfile` 后运行 `pnpm remote` 查看用法。公钥绑定、
 两进程加密通信、事件恢复和可选公网隧道见 [开发手册](docs/development.md#301-两进程诊断-cli)。
