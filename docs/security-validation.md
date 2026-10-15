@@ -1,6 +1,6 @@
 # M4 安全验证矩阵与审查边界
 
-日期：2026-10-13。本文件关联威胁模型与实际验证入口；“本地通过”不代表独立安全审计或真实平台验收。
+日期：2026-10-15。本文件关联威胁模型与实际验证入口；“本地通过”不代表独立安全审计或真实平台验收。
 
 | 威胁 | 验证入口 | 当前证据/边界 |
 |---|---|---|
@@ -35,7 +35,10 @@ SDK 最终收到规范化的完整 binary message，继续负责 outbound maskin
 10 秒短跑通过（5564 次变异）；随后复用语料运行 **600 秒、147123 次变异**，初始执行范围 34 → 38，2 个变异输入产生新范围，最终保留 21 条语料。范围数不是覆盖率百分比。
 输入最多 1024 字节、语料最多 512 条；对 DR 头/载荷做编解码往返，对 TCP 解码比较分块/合并结果，只有 ProtocolError 可作为预期拒绝。失败保留可复现 base64 输入与 PRNG 状态。
 报告记录 Node 版本、源文件哈希、预算和范围，日志 `.cache/m4/coverage-fuzz-{smoke,10min}.log`，语料/报告 `.cache/coverage-fuzz`。本地 scope 内存峰值观测约 234 MiB，限额仍为 8 GiB / 4 GiB swap。
-`fuzz.yml` 每日 900 秒、最多 100 万变异的远端入口首次运行已通过：来源 `7e8053b`，447076 次变异、执行范围 32 → 38、21 条语料；报告和语料源码哈希已核验。详细证据见 [M4 记录](m4-summary.md)。该入口只覆盖 Node DR 解析与 TCP 解码；Dart/Noise/WS 状态机的覆盖率引导与持续长期证据仍未完成。
+`fuzz.yml` 每日 900 秒、最多 100 万变异的 Node 入口首次运行已通过：来源 `7e8053b`，447076 次变异、执行范围 32 → 38、21 条语料；报告和语料源码哈希已核验。该入口只覆盖 Node DR 解析与 TCP 解码。
+
+2026-10-15 新增 [Dart 覆盖率反馈入口](dart-fuzz.md)，以 VM 累计 token-position Coverage 保留新命中输入，覆盖 DR、WebSocket receive guard 与 Noise 握手/transport。单输入 ≤1024 字节、语料 ≤256 条；外层 watchdog 与 VM 请求限额均启用。使用合成身份/密钥，不读取真实状态。
+本机 10 秒短跑、Dart 58/58 和 4 项隔离故障注入/回放检查通过；`46a3dc5` 的协议/安全 CI（含新短跑与故障检查）通过。每日 workflow 改为串行 Node/Dart 各 900 秒；结果见 [M4 记录](m4-summary.md)。SDK socket/control callback、RemoteConnection 生命周期/重连竞速、Node Noise 和持续长期证据仍未完成。
 
 ## 供应链复核
 
@@ -49,7 +52,8 @@ Node 缺失项均为可选 peer/其他 OS 二进制；库存不代表这些平�
 - `mobile_scanner` Android 原生依赖包含 MLKit 和 CameraX；此清单未覆盖所有 Maven/CocoaPods 二进制的漏洞、许可证与供应链保证，iOS/macOS 与平台依赖审查仍未通过。
 
 2026-10-14 补充从实际 `releaseRuntimeClasspath` 解析的 **91 个外部 artifact / 86 个 Maven 坐标**，已记录全部 artifact SHA-256；补齐官方 Google Maven/Maven Central POM，86 个坐标的 POM 哈希均存在。OSV 对全部 86 个坐标查询，当前匹配 **0**，快照在 `.cache/m4/android-osv.json`，不是“无漏洞”证明。
-80 个坐标有直接 POM 许可证声明；`auto-value-annotations`/`listenablefuture` 与 Flutter engine/embedding 的 6 个坐标缺直接声明，前两者的准确 parent POM 链与后四者匹配 engine 的许可证已补证，APK 内 engine 文本也已核验，见 [补证材料](android-license-review.md)。发布所需 Maven/native notice 和独立审查仍未完成，补证不改变原始 POM 声明。
+80 个坐标有直接 POM 许可证声明；`auto-value-annotations`/`listenablefuture` 与 Flutter engine/embedding 的 6 个坐标缺直接声明，前两者的准确 parent POM 链与后四者匹配 engine 的许可证已补证，APK 内 engine 文本也已核验，见 [补证材料](android-license-review.md)。补证不改变原始 POM 声明。
+2026-10-15 对这 91 个哈希固定的产物扫描分发声明，11 个坐标含内嵌文本，保留 4 份不同声明及 15 个原始 native 条目。已有 APK 的 18 个 native 条目对照、Flutter merged/stripped 链与 `jni 1.1.0` 官方 archive 的 181 文件匹配已记录，见 [声明材料](android-notices.md)。Camera BSD、ML Kit/SDK 条款与隐私、应用/JNI 跨环境二进制、Apple 及独立审查仍未关闭。
 Flutter 本地 plugin project 列在 `excludedProjectComponents`，不混入 Maven 公告扫描；Gradle/SDK 工具链、Apple 解析结果和平台二进制独立审查仍在范围外。日志/库存 `.cache/m4/android-{inventory.log,artifacts.json,dependencies.json,osv.log}`。
 
 规范/包来源：[Noise 规范](https://noiseprotocol.org/noise.html)、[cryptography 2.9.0](https://pub.dev/packages/cryptography/versions/2.9.0)、[flutter_secure_storage 10.3.4](https://pub.dev/packages/flutter_secure_storage/versions/10.3.4)。本文件的实现判断来自本机源码与运行结果，不将上游包介绍当安全审计结论。

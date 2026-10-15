@@ -22,5 +22,5 @@
 ## 已有证据与缺口
 
 本地自测、冻结向量、第三方 BLAKE2b 对照和 Node↔Dart 互通日志在 `.cache/m4`；BLAKE2b 对照与本项目 BLAKE2s 实现不同，不构成后者的完整独立认证。
-Node/Dart 安全回归已测试重放、降级、角色/身份/流混淆及接收限额。Node 覆盖率 fuzz 只涉及 DR 解析/TCP，不覆盖 Noise 状态机，也不替代独立审查。
+Node/Dart 安全回归已测试重放、降级、角色/身份/流混淆及接收限额。Node 覆盖率 fuzz 只涉及 DR 解析/TCP，不覆盖 Noise 状态机；新增 [Dart 覆盖率反馈入口](dart-fuzz.md)覆盖合成 Noise 握手/transport，并验证错误分类和故障回放。SDK socket、RemoteConnection 生命周期/竞速、Node Noise 与长期观察仍有缺口；这些工具均不替代独立审查。
 交付审查报告时须记录审查者、日期、完整 SHA、方法、发现/修复验证、尚未覆盖的风险和是否允许发布；当前这些字段均未填充，也没有对外发送本资料。

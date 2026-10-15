@@ -55,9 +55,9 @@ GitHub Packages 要求包名使用所属账号的小写 scope，因此候选名�
 正式版本仍需要独立 Noise 审查、完整供应链复核、持续 fuzz 和私密披露收件验证。仓库归属已确认；`e4a1b32` 的协议/安全及移动 Android CI 已通过，来源与产物哈希已核验，见 [M4 记录](m4-summary.md)。后续发布必须验证最终标签的同一 SHA。
 Android/iOS 最终产品验收仍按 M3 延期清单执行；此候选不宣称双端产品已验收。
 
-- `ci.yml`：Node/Dart、安全回归、互通、覆盖率 fuzz 短跑、候选独立安装与 Android AOT。
+- `ci.yml`：Node/Dart、安全回归、互通、两端覆盖率 fuzz 短跑、Dart 故障注入/回放、候选独立安装与 Android AOT。
 - `mobile.yml`：GitHub 托管 Linux 容器检查 Flutter 并构建 Android；iOS 只在手动明确允许无 systemd 限额的 macOS 构建时运行。
-- `fuzz.yml`：每天一次 900 秒/最多 100 万迭代的 Node 解析器覆盖率引导 fuzz，保存有界语料及报告；每次均有超时和容器限额。
+- `fuzz.yml`：每天串行执行 Node DR/TCP 与 Dart DR/Noise/WS guard 覆盖率反馈 fuzz，各 900 秒/最多 100 万迭代，保存有界语料及报告；每次均有超时和容器限额。范围与盲区见 [Dart 入口](dart-fuzz.md)。
 - `publish.yml`：只手动 dispatch，必须选 `v0.1.0` 标签。先重跑同一标签的 CI 与 Android App 门禁，再下载该次 CI 的确切 tarball。`publish-next` 依序上传 `next`；`promote-latest` 只晋级已发布且哈希匹配的五包，不重新打包或发布版本。两种操作均需 environment 人工审核。
 
 `github-packages` environment 已配置审核人 `BruceZhang1993`，仅允许 tag `v0.1.0`。允许所有者审核自己的手动运行，这是维护者发布确认，不代表独立安全审查。私密漏洞报告已启用，收件/通知尚未验收。完成独立审查、平台供应链复核及披露渠道验证后，将 environment 变量 `DSH_RELEASE_APPROVED_SHA` 设为审核过的**完整提交 SHA**，记录审查证据；变量未设置或不匹配时发布脚本拒绝执行。审批针对具体候选/哈希/账号/registry/tag，不能只凭绿灯放行。
@@ -67,7 +67,7 @@ Android/iOS 最终产品验收仍按 M3 延期清单执行；此候选不宣称�
 
 注册表安装验收通过后，记录来源 SHA、五包 integrity、消费者环境、诊断/真实 DSH 回归及回滚结果，再将 environment 变量 `DSH_RELEASE_PROMOTION_APPROVED_SHA` 设为同一完整 SHA，并明确授权 `latest` 晋级。手动 dispatch 选择同一 `v0.1.0` 和 `promote-latest`；脚本先核对全部五个已发布版本，再按依赖顺序修改并读回 `latest`。缺少版本、哈希不同或批准变量不匹配时，在修改任何 tag 前拒绝。部分晋级失败保留已改 tag，停止后续包；核验后可对同一来源续跑，不自动回滚。当前两个批准变量均未设置，尚未发布或晋级。
 
-发布前逐项核对见 [发布就绪清单](release-readiness.md)，Android 6 项声明补证见 [许可证复核](android-license-review.md)。
+发布前逐项核对见 [发布就绪清单](release-readiness.md)，Android 6 项声明补证见 [许可证复核](android-license-review.md)，Maven/native 与 JNI 来源见 [声明材料](android-notices.md)。
 
 ## 注册表安装（发布后）
 

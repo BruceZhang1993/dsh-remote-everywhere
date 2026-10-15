@@ -23,6 +23,8 @@
 
 ## 仍待完成
 
+2026-10-15 已补齐当前 Maven/native 声明扫描、现有 APK 对照及 JNI archive 来源，见 [分发声明材料](android-notices.md)。已准备审查归档，完整许可/二进制结论仍待外部审查。
+
 - 全部 Maven/native 依赖的分发许可证与 notice 要求复核；auto-value/listenablefuture 的名称未在 Flutter 自动生成的 notices 中找到，不能仅凭 parent 声明认定分发义务已完成。
 - Apple 解析结果、平台二进制和 SDK/工具链独立审查。
 - 重新生成正式签名 App 后，针对最终产物复核许可证文本和产物哈希；当前 APK 仍使用调试签名。

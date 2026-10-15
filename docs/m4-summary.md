@@ -1,7 +1,7 @@
 # M4 加固与验证记录
 
 日期：2026-10-14。基线 `475ea94`，分支 `feature/20261013-m4Hardening`。
-状态：**接收加固、统一审计、scoped 候选、首次远端 CI 与 GitHub 发布流程准备已收口；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
+状态：**接收加固、统一审计、scoped 候选、远端 CI、Dart 覆盖率反馈入口与 Android 声明材料已准备；独立/平台审查、持续长期 fuzz 与实际发布未完成**。
 用户已创建公开仓库 `BruceZhang1993/dsh-remote-everywhere`，origin 已接入；默认 master，Actions 已启用。用户明确授权后，M4 实现提交 `f266b56` 首次推送至 origin/master，远端 SHA 已核对一致。CI 首轮结果及修复见下方。
 远端初次核验时 private vulnerability reporting 未启用、environment 列表为空；2026-10-14 后续已启用报告并配置 `github-packages` environment，见下方发布收口记录。批准 SHA 和私密收件验收仍未完成，尚未发布。
 
@@ -134,3 +134,19 @@ SDK 归档保留了与容器运行用户不同的 owner；仅在 Android 构建�
 
 首次远端 fuzz 产物位于 `.cache/m4/fuzz-7e8053b/`，日志 `.cache/m4/fuzz-7e8053b.log`。Node v22.23.3，实际 900002 ms；report SHA-256 为 `57441ab120ed292351259c15b600fd7edbd0cfb7018046359942f2a8854f4e95`，corpus SHA-256 为 `40d5357688c9dbf657c02ca43db0d08fed8ee0d4145d17ee96b1ca20c5f663e6`。运行范围仅 Node DR/TCP。
 此次结果回填仅修改文档并跳过重复 CI；代码验证对应 `9669955`，fuzz 对应 `7e8053b`。没有创建发布标签、设置批准 SHA、发布 npm 版本或修改 registry 的 latest。
+
+## 2026-10-15 Dart 覆盖率反馈与 native 声明材料
+
+新增 `packages/core/dart/bin/coverage_fuzz.dart` 和 `tools/dart-fuzz.sh`，不改变生产实现/依赖。以 VM 累计 token-position Coverage 反馈 DR、WebSocket receive guard、Noise 握手/transport 的合成输入；仅保留种子或新增命中输入，失败前保存当前输入/状态并支持回放。范围、资源预算及未覆盖部分见 [Dart fuzz](dart-fuzz.md)。
+
+本机 scope 内验证：Dart format/analyze、58/58 测试、10 秒短跑（960 次变异、623 个命中位置、35 条复用语料），以及 4 项隔离故障注入/恢复回放检查全部通过。命中位置为 frame 60、guard 169、Noise 394，不是覆盖百分比。`pnpm check`、actionlint 和 shell 语法检查通过；生产文件未因故障注入被修改。
+日志 `.cache/m4/dart-fuzz-{regression,gates,smoke}.log`。曾发现跨会话测试夹具复用临时密钥，现已按合成 sid 派生不同临时密钥并显式断言不同 transport keys；这是夹具修正，不计为生产漏洞。
+
+提交 `b1f2200` 增加入口与 CI；[移动 Android workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687135971) 成功，iOS 不计通过。首次扩展长跑在安装 Dart 时因缺 unzip 失败，目标尚未运行；提交 `46a3dc5c4eda455230dfa01f4dd140528b24a82e` 补齐工具后，[协议/安全与 Android AOT workflow](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687371586) 成功，含两端短跑和 Dart 故障回放检查。
+
+每日 workflow 现串行 Node/Dart 各 900 秒，8 GiB / 4 GiB swap 容器、job 40 分钟上限；手动 [长跑](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38687371773) 对应 `46a3dc5`，结果与产物尚待核验。单次成功也不关闭持续长期门禁；SDK socket/control callback、RemoteConnection 生命周期/重连竞速和 Node Noise 仍不在新增覆盖反馈范围内。
+
+`tools/android-notices.py` 对当前 91 个产物/86 个坐标逐一核验哈希后扫描声明：11 个坐标有内嵌声明，保留 4 份不同文本及 15 个原始 native 条目，一层扫描无未检查 JAR。已有 `e4a1b32` APK 的 18 个 native 文件中，9 个与 Maven 原始条目一致，3 个 Flutter engine 串起 Maven → merged → stripped → APK 链；其余应用/JNI 的跨环境字节一致性未证明。
+`jni 1.1.0` 官方 archive 与锁文件哈希一致，181 个文件与安装源码全部匹配，JNI 构建入口与混合 BSD/Apache 声明已整理。详细边界和复现入口见 [Android 声明材料](android-notices.md)。Camera BSD 来源、ML Kit/SDK 条款与隐私、最终签名二进制、其余 plugin/Apple 和独立审查继续保留。
+
+本机材料包 `.cache/m4/android-notice-review-20261015.zip` 已准备，未对外发送。生成材料的 `independentlyApproved` 为 false，不能视为分发批准。声明文本包 SHA-256 `5cbbfcfa7051781df653cbc6e56eb316426a55bf6d0bbba99678fc1f63b5a20b`，manifest SHA-256 `305d80f2e6bd389bc87c3c1d8558670a65b35ac0ca773b163373e61d9aeb5d67`。
