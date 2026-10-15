@@ -18,7 +18,7 @@ jobs:
       image: ubuntu:24.04
       options: --memory=8g --memory-swap=12g
     steps:
-      - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates
+      - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates python3
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -35,6 +35,10 @@ jobs:
       - working-directory: packages/core/dart
         run: dart pub get --enforce-lockfile && dart analyze && dart test && dart run bin/selftest.dart && dart run bin/verify_vectors.dart
       - run: pnpm test:interop
+      - run: bash tools/dart-fuzz.sh --inside-scope
+        env:
+          DSH_DART_FUZZ_SECONDS: '10'
+      - run: python3 tools/test-dart-fuzz.py
       - run: pnpm audit --prod
       - run: pnpm test:release-candidate --github-packages "$GITHUB_REPOSITORY"
       - run: node --test --test-concurrency=1 tools/test-release.mjs
@@ -44,6 +48,12 @@ jobs:
           path: |
             .cache/github-packages-0.1.0/*.tgz
             .cache/github-packages-0.1.0/manifest.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: dart-state-fuzz-smoke
+          path: .cache/dart-fuzz/*.json
           if-no-files-found: error
   android-aot:
     runs-on: ubuntu-latest
