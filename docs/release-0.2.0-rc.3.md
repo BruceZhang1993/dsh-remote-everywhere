@@ -29,3 +29,13 @@
 机器可读结果见 [发布验收证据](release-0.2.0-rc.3.json)。完整自动发布流水线仍为 failure；公开分发和人工补充验收已完成，两者分别记录。
 
 安装及回滚见 [中文指引](install.md) / [English](install.en.md)。
+
+## GitHub Packages 补发
+
+此前自动版本发布仅覆盖公共 npm 与 GitHub Release，GitHub Packages 保留独立手动流程，因此仍停留在 `0.1.0`。用户指出差异后，使用原 `v0.2.0-rc.3` / `cf2e4d8` 启动[补发运行](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38861638500)。同标签完整 CI 通过，重新生成的 GitHub Packages 六包清单和哈希与原 rc.3 CI 完全一致；更新环境批准 SHA、仅增加该确切 tag 的允许规则，并按本次授权通过既有环境审批，保留 reviewer 保护。
+
+六个包于 2026-10-16 06:39:28–06:39:31 UTC 上传成功，均使用 `next`；没有覆盖旧版本或执行 latest 晋级。protocol、core、tunnel、CLI 的注册表完整性核验通过，随后 UI 的 `dsh` 元数据校验失败，未进入该渠道的消费者安装。
+
+[独立检查](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38862544843) 确认 UI 已是 `0.2.0-rc.3` / `next`，下载包的 SHA-512 与候选及注册表一致，包内含完整 `dsh.client`，但注册表响应缺少 `dsh`。因此“GitHub Packages 六包版本已补发”成立，“该渠道 DSH 安装验收通过”仍不成立；未删除检查或改桌面端绕过。桌面插件继续使用已通过验收的公共 npm 渠道。
+
+机器可读的上传及失败证据见 [GitHub Packages 记录](release-0.2.0-rc.3-github-packages.json)。该补发不改变前文公共 npm、APK 和 GitHub Release 的成功证据。

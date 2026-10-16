@@ -1,0 +1,132 @@
+{
+  "version": "0.2.0-rc.3",
+  "registry": "https://npm.pkg.github.com",
+  "sourceCommit": "cf2e4d817b21012e306f1e7a89e086bd2ec54bfa",
+  "sourceDirty": false,
+  "workflow": {
+    "conclusion": "failure",
+    "headSha": "cf2e4d817b21012e306f1e7a89e086bd2ec54bfa",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "verify / protocol-core",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "verify / mobile / android",
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "verify / mobile / ios",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "name": "publish",
+        "status": "completed"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38861638500"
+  },
+  "publication": {
+    "uploadedPackages": 6,
+    "uploadWindowUTC": "2026-10-16T06:39:28Z/2026-10-16T06:39:31Z",
+    "tag": "next",
+    "consumerAcceptancePassed": false,
+    "failure": "registry DSH metadata differs: @brucezhang1993/dsh-remote-ui",
+    "firstFourIntegrityChecksPassed": true,
+    "latestPromotionExecuted": false
+  },
+  "packages": [
+    {
+      "name": "@brucezhang1993/dsh-remote-protocol",
+      "version": "0.2.0-rc.3",
+      "file": "brucezhang1993-dsh-remote-protocol-0.2.0-rc.3.tgz",
+      "bytes": 16758,
+      "sha256": "375a552c68dda2edae852dbc3e9f022845006b16f717e62ae68e00644d84779a",
+      "integrity": "sha512-qt4IoLZsLCuDjgR8f3TfLLHTi2TmPoXTPy67RxHdig4UXhMiCIiCDHkQ1cKdSzKp8zF3S1clpIYj44ZAi051hg=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-core",
+      "version": "0.2.0-rc.3",
+      "file": "brucezhang1993-dsh-remote-core-0.2.0-rc.3.tgz",
+      "bytes": 43773,
+      "sha256": "23782ad6005dc9813be976a9f56ffaba6c19d1d7e26973696cdfaa276f34b044",
+      "integrity": "sha512-6hxXhwh4jM3sKDthBfYSAsClbPPM6VgKaBIAwofU1kJ4+PqsO8EDiSaCWaR8ji1YQfHucwrHRE1+lJYjhTQD+Q=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-tunnel",
+      "version": "0.2.0-rc.3",
+      "file": "brucezhang1993-dsh-remote-tunnel-0.2.0-rc.3.tgz",
+      "bytes": 6631,
+      "sha256": "8d5ba3ce4d7a23bb0236752a45e47b027af0c542590fc8770d8af10341f6c0d2",
+      "integrity": "sha512-JJj4vLCBDnEWfpbimjEGvSy49rTESK8zVMnNZEtYkRLvPA2iY5gTDcM2zJDprxz+7cVjORsUcx4ncXs3oRhHFQ=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-cli",
+      "version": "0.2.0-rc.3",
+      "file": "brucezhang1993-dsh-remote-cli-0.2.0-rc.3.tgz",
+      "bytes": 5944,
+      "sha256": "bfe14568e3089818f4d13030e7853feb8ed14cb8917c9d8be8aaa329994acb33",
+      "integrity": "sha512-+QGwo2He8MWsLu+Ez022s8spZ/WdCdlDjZzt6cqWfRN5rZgKAR2Kmedle/KdycE9fKIlqK509kBlwoLi5kcB4w=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-ui",
+      "version": "0.2.0-rc.3",
+      "file": "brucezhang1993-dsh-remote-ui-0.2.0-rc.3.tgz",
+      "bytes": 13056,
+      "sha256": "c887ca9e5f1ba4d323c600aaa5fe4020013b45da4ed8d4dcba41d829e0395c8b",
+      "dsh": {
+        "client": {
+          "platform": "web",
+          "inject": [
+            "@deepseek-ai/dsh-client-connection",
+            "@deepseek-ai/dsh-client-locale",
+            "@deepseek-ai/dsh-client-ui-plugin-manager",
+            "@deepseek-ai/dsh-client-ui-sidebar"
+          ]
+        }
+      },
+      "integrity": "sha512-YJkqPbmH7imZp5zqI10bzbYWGI+/eb/p5uzSSlY8Fs6e0z3bFHDTQ7ZmvFChrU0FrXiJIYpjXk0r582Df9mahg=="
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-everywhere",
+      "version": "0.2.0-rc.3",
+      "file": "brucezhang1993-dsh-remote-everywhere-0.2.0-rc.3.tgz",
+      "bytes": 36663,
+      "sha256": "1f104207ea3a2b13c42c5f5c6d5402f177b8e1514a83dff7d2a990d9abaa2a62",
+      "dsh": {
+        "bundle": {
+          "patch": "./cordis.patch.yml"
+        }
+      },
+      "integrity": "sha512-gqsLOsAOqVHoxY5gPB1YhEnd22MpC+8JgipNE+3iatsExaec6N8i3XZ7pxNeX47M0iaLewNKW5TGs/E6ZgJCbg=="
+    }
+  ],
+  "independentInspection": {
+    "workflow": "https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38862544843",
+    "passed": false,
+    "name": "@brucezhang1993/dsh-remote-ui",
+    "version": "0.2.0-rc.3",
+    "distTags": {
+      "next": "0.2.0-rc.3"
+    },
+    "registryDsh": null,
+    "tarballDsh": {
+      "client": {
+        "platform": "web",
+        "inject": [
+          "@deepseek-ai/dsh-client-connection",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-plugin-manager",
+          "@deepseek-ai/dsh-client-ui-sidebar"
+        ]
+      }
+    },
+    "downloadedIntegrity": "sha512-YJkqPbmH7imZp5zqI10bzbYWGI+/eb/p5uzSSlY8Fs6e0z3bFHDTQ7ZmvFChrU0FrXiJIYpjXk0r582Df9mahg==",
+    "registryIntegrity": "sha512-YJkqPbmH7imZp5zqI10bzbYWGI+/eb/p5uzSSlY8Fs6e0z3bFHDTQ7ZmvFChrU0FrXiJIYpjXk0r582Df9mahg=="
+  }
+}

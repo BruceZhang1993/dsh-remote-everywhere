@@ -10,6 +10,8 @@
 - 兼容 npm 12 的查询/打包 JSON 格式；候选按顺序上传后逐包有界等待可见，保留认证、网络、完整性及 DSH 元数据门禁。预发布清理误生成的 `latest`，保留稳定标签。
 - 六包版本为 `0.2.0-rc.3`，Android versionCode 为 5；公共 npm、匿名安装/真实双宿主/UI 与 GitHub Release 六附件校验完成。原流水线因 latest 清理失败保持 failure，用户决定保留标签后人工完成公开 Release；实际标签、证据和延期项见 [rc.3 记录](docs/release-0.2.0-rc.3.md)。
 
+- 按用户要求向 GitHub Packages 补发同版六包 `next`；六包上传成功，但注册表缺失 UI 的 `dsh` 元数据，消费者门禁失败。该渠道仍未通过 DSH 安装验收，详情与独立证据见 rc.3 发布记录。
+
 ## 2026-10-16 — 0.2.0-rc.2 发布未完成
 
 - 修复正式签名可复用工作流缺少 `secrets: inherit` 导致签名凭据为空的问题；六包版本更新为 `0.2.0-rc.2`，Android versionCode 递增至 4。继续使用 npm `next`，保留并披露延期项，见 [rc.2 记录](docs/release-0.2.0-rc.2.md)。
