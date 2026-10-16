@@ -18,6 +18,10 @@
 
 ## 执行状态
 
-版本及修复已准备；正式标签、同标签 CI、签名 APK、npm 写入与匿名安装验收、GitHub Release 及附件校验待执行，不提前声明发布成功。
+本次发布未完成，标签 `v0.2.0-rc.2` 保留在 `567f189f1e79ce9123f80bcdbaa7a1a61fe71a39`。[完整 CI 与正式签名任务](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38854250674) 通过，原正式证书的 Android APK versionCode 为 4，本地下载后重新核验五个附件校验和、v2 签名、证书、包名和 16 KiB 对齐均通过。
+
+npm 只接受了 `@brucezhang1993/dsh-remote-protocol@0.2.0-rc.2`，其 SHA-512 与同次候选一致。发布后处理延迟导致立即读回 404；恢复时又发现 npm 12 单元素数组被旧代码当作字符串比较，误报完整性不一致。其余五包未发布，匿名安装验收与公开 GitHub Release 未执行。注册表还为首个包生成了指向 RC 的 `latest`，后续需清理，不能声明仅有 `next`。
+
+沿用保留失败标签的处理方式，发布工具修复后改发 [0.2.0-rc.3](release-0.2.0-rc.3.md)；不修改或覆盖 rc.2 已发布包。
 
 安装及回滚见 [中文指引](install.md) / [English](install.en.md)。

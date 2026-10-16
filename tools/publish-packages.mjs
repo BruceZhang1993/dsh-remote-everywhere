@@ -4,7 +4,9 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
-import { releaseVersion, releasePackages, scopedPackageName, releaseRegistries, candidateDirectory, releaseTag, prerelease } from './release-config.mjs'
+import { setTimeout as delay } from 'node:timers/promises'
+import { parseNpmView } from './npm-json.mjs'
+import { releaseVersion, releasePackages, scopedPackageName, releaseRegistries, candidateDirectory, releaseTag, prerelease, compareVersions } from './release-config.mjs'
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const args = process.argv.slice(2)
@@ -45,7 +47,7 @@ if (!publish && !promote) {
     throw new Error('promotion requires separate approval after registry installation acceptance')
   }
   if (target === 'npm' && promote && prerelease) throw new Error('prereleases cannot become latest')
-  const registry = [`--registry=${releaseRegistries[target]}`]
+  const registry = [`--registry=${releaseRegistries[target]}`, `--@${scope}:registry=${releaseRegistries[target]}`]
   function view(artifact, allowMissing = false) {
     const result = spawnSync('npm', ['view', `${artifact.name}@${releaseVersion}`, 'dist.integrity', '--json', ...registry], { encoding: 'utf8', timeout: 60000 })
     if (result.error) throw result.error
@@ -56,11 +58,11 @@ if (!publish && !promote) {
       if (allowMissing && code === 'E404') return false
       throw new Error(`registry lookup failed: ${artifact.name} (${code ?? result.status})`)
     }
-    if (JSON.parse(result.stdout) !== artifact.integrity) throw new Error(`registry integrity differs: ${artifact.name}`)
+    if (parseNpmView(result.stdout) !== artifact.integrity) throw new Error(`registry integrity differs: ${artifact.name}`)
     if (artifact.dsh) {
       const metadata = spawnSync('npm', ['view', `${artifact.name}@${releaseVersion}`, 'dsh', '--json', ...registry], { encoding: 'utf8', timeout: 60000 })
       let actual
-      try { actual = JSON.parse(metadata.stdout) } catch {}
+      try { actual = parseNpmView(metadata.stdout) } catch {}
       if (metadata.status !== 0 || !isDeepStrictEqual(actual, artifact.dsh)) throw new Error(`registry DSH metadata differs: ${artifact.name}`)
     }
     return true
@@ -70,7 +72,7 @@ if (!publish && !promote) {
   if (target === 'npm' && promote) for (const artifact of artifacts) {
     const result = spawnSync('npm', ['view', artifact.name, 'dist-tags.latest', '--json', ...registry], { encoding: 'utf8', timeout: 60000 })
     if (result.status !== 0) throw new Error(`latest lookup failed: ${artifact.name}`)
-    const latest = result.stdout.trim() ? JSON.parse(result.stdout) : null
+    const latest = parseNpmView(result.stdout)
     if (!latest) continue
     if (!/^\d+\.\d+\.\d+$/.test(latest)) throw new Error('latest must reference a stable version')
     const old = latest.split('.').map(Number), next = releaseVersion.split('.').map(Number)
@@ -84,7 +86,7 @@ if (!publish && !promote) {
       if (result.status !== 0) throw new Error(`promotion failed: ${artifact.name}; preserve already promoted tags`)
       const tag = spawnSync('npm', ['view', artifact.name, 'dist-tags.latest', '--json', ...registry], { encoding: 'utf8', timeout: 60000 })
       if (tag.error) throw tag.error
-      if (tag.status !== 0 || JSON.parse(tag.stdout) !== manifest.version) throw new Error(`latest tag verification failed: ${artifact.name}`)
+      if (tag.status !== 0 || parseNpmView(tag.stdout) !== manifest.version) throw new Error(`latest tag verification failed: ${artifact.name}`)
       console.log(`promoted ${artifact.name}@${releaseVersion} to latest`)
       continue
     }
@@ -93,7 +95,36 @@ if (!publish && !promote) {
       if (result.error) throw result.error
       if (result.status !== 0) throw new Error(`publication failed: ${artifact.name}; preserve already published packages`)
     }
-    view(artifact)
-    console.log(`verified ${artifact.name}@${releaseVersion}`)
+  }
+  if (publish) {
+    // Upload in dependency order, then wait for npm's asynchronous processing.
+    // An authentication, network, integrity or metadata error still fails immediately.
+    for (const artifact of artifacts) {
+      const deadline = Date.now() + 6 * 60_000
+      while (!view(artifact, true)) {
+        if (Date.now() >= deadline) throw new Error(`registry visibility timed out: ${artifact.name}; preserve uploaded packages`)
+        console.log(`waiting for registry visibility: ${artifact.name}`)
+        await delay(5000)
+      }
+      console.log(`verified ${artifact.name}@${releaseVersion}`)
+    }
+    if (target === 'npm' && prerelease) for (const artifact of artifacts) {
+      const tags = () => {
+        const result = spawnSync('npm', ['view', `${artifact.name}@${releaseVersion}`, 'dist-tags', '--json', ...registry], { encoding: 'utf8', timeout: 60000 })
+        if (result.error) throw result.error
+        if (result.status !== 0) throw new Error(`dist-tags lookup failed: ${artifact.name}`)
+        const value = parseNpmView(result.stdout)
+        if (!value || typeof value !== 'object') throw new Error(`invalid dist-tags: ${artifact.name}`)
+        return value
+      }
+      const latest = tags().latest
+      // First publication can create latest; also clear an older failed RC's tag.
+      // Keep an existing stable latest and never remove a newer version's tag.
+      if (!latest?.includes('-') || compareVersions(latest, releaseVersion) > 0) continue
+      const result = spawnSync('npm', ['dist-tag', 'rm', artifact.name, 'latest', ...registry], { stdio: 'inherit', timeout: 60000 })
+      if (result.error) throw result.error
+      if (result.status !== 0 || tags().latest) throw new Error(`prerelease latest cleanup failed: ${artifact.name}`)
+      console.log(`removed prerelease latest: ${artifact.name}@${latest}`)
+    }
   }
 }

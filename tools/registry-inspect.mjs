@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { releaseVersion, releaseRegistries, scopedPackageName, validateVersion } from './release-config.mjs'
+import { parseNpmView } from './npm-json.mjs'
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const target = process.env.REGISTRY_TARGET ?? 'npm'
@@ -21,9 +22,10 @@ function run(command, args) {
 }
 for (const pkg of ['dsh-ui', 'dsh-plugin']) {
   const spec = `${scopedPackageName(owner, pkg)}@${version}`
-  const metadata = JSON.parse(run('npm', ['view', spec, '--json', `--registry=${releaseRegistries[target]}`]))
+  const registry = [`--registry=${releaseRegistries[target]}`, `--@${owner}:registry=${releaseRegistries[target]}`]
+  const metadata = parseNpmView(run('npm', ['view', spec, '--json', ...registry]))
   // Resolve a mutable dist-tag once, then compare the exact immutable version.
-  const packed = JSON.parse(run('npm', ['pack', `${metadata.name}@${metadata.version}`, '--ignore-scripts', '--json', `--registry=${releaseRegistries[target]}`]))[0]
+  const [packed] = Object.values(JSON.parse(run('npm', ['pack', `${metadata.name}@${metadata.version}`, '--ignore-scripts', '--json', ...registry])))
   const manifest = JSON.parse(run('tar', ['-xOf', packed.filename, 'package/package.json']))
   writeFileSync(join(directory, `${pkg}.json`), JSON.stringify({ spec, metadata, manifest, integrity: packed.integrity }, null, 2))
   assert.equal(packed.integrity, metadata.dist.integrity)
