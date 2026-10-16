@@ -56,6 +56,8 @@
 
 日志为忽略目录中的 `.cache/full-release-preflight.log` 与 `.cache/release-docs-check.json`；本地正式证书候选附件位于 `.cache/mobile-release/`，版本 `0.2.0-dev.0`、versionCode 2，对应当前未提交工作区，**尚未公开发布**。本地 tarball、mock 与正式证书本地 APK 都不能证明 npm OIDC、远端最终提交 CI、正式注册表消费者或真机已验收。
 
+后续发布准备时，实际 tarball 回归发现候选构建脚本的目录变量遮蔽 registry 选择，导致 `publishConfig.registry` 丢失。已修正，并补充同时读取两种渠道全部十二个 tarball 的回归断言；原产物能复现失败，重新打包、两个渠道离线发布检查、类型检查及 **40 项发布回归**全部通过。显式传入 registry 的发布脚本不依赖该缺失字段，但候选包自身也必须保留正确渠道。日志为 `.cache/release-preparation/registry-regression-before.log` / `registry-regression-after.log`。
+
 ## 延期项与历史 CI
 
 独立 Noise/供应链及许可证审查、真机、iOS/macOS、真实模型等既有延期项继续保留，见 [M4](m4-summary.md) 与 [历史就绪记录](release-readiness.md)；不能用测试 badge 消除这些边界。

@@ -8,11 +8,11 @@ import { releaseVersion, releasePackages, scopedPackageName, releaseRegistries }
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const args = process.argv.slice(2)
 if (args.length && (args.length !== 2 || !['--github-packages', '--npm'].includes(args[0]))) throw new Error('usage: release-candidate.mjs [--github-packages|--npm OWNER/REPO]')
-const target = args[0]?.slice(2)
+const registryTarget = args[0]?.slice(2)
 const repository = args[1]
 if (repository && !/^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?\/[a-z\d_.-]+$/i.test(repository)) throw new Error('invalid GitHub OWNER/REPO')
 const scope = repository?.split('/')[0].toLowerCase()
-const destination = join(root, `.cache/${target ?? 'release'}-${releaseVersion}`)
+const destination = join(root, `.cache/${registryTarget ?? 'release'}-${releaseVersion}`)
 const staging = join(destination, 'staging')
 const names = releasePackages
 const packages = names.map(name => ({ directory: name, ...JSON.parse(readFileSync(join(root, 'packages', name, 'package.json'))) }))
@@ -55,7 +55,7 @@ for (const pkg of packages) {
   manifest.name = packageNames[pkg.name]
   if (scope) {
     manifest.repository = { type: 'git', url: `https://github.com/${repository}.git`, directory: `packages/${directory}` }
-    manifest.publishConfig = { registry: releaseRegistries[target], access: 'public', tag: 'next' }
+    manifest.publishConfig = { registry: releaseRegistries[registryTarget], access: 'public', tag: 'next' }
   }
   manifest.license = 'MIT'
   manifest.files = [...new Set([...manifest.files, 'LICENSE', 'SECURITY.md'])]
@@ -90,6 +90,6 @@ for (const pkg of packages) {
 const evidence = { candidateOnly: true, version: releaseVersion, sourceCommit: run('git', ['rev-parse', 'HEAD']).trim(),
   sourceDirty: Boolean(run('git', ['status', '--porcelain']).trim()),
   lockSha256: sha256(readFileSync(join(root, 'pnpm-lock.yaml'))),
-  ...(scope ? { registry: releaseRegistries[target], repository, packageNames } : {}), artifacts }
+  ...(scope ? { registry: releaseRegistries[registryTarget], repository, packageNames } : {}), artifacts }
 writeFileSync(join(destination, 'manifest.json'), `${JSON.stringify(evidence, null, 2)}\n`)
 console.log(JSON.stringify(evidence))

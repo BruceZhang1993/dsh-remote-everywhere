@@ -7,10 +7,21 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
-import { releaseVersion } from './release-config.mjs'
+import { releaseVersion, releaseRegistries } from './release-config.mjs'
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const candidate = join(root, `.cache/github-packages-${releaseVersion}`)
+test('packed candidates retain the selected publication registry', () => {
+  for (const [target, registry] of Object.entries(releaseRegistries)) {
+    const directory = join(root, `.cache/${target}-${releaseVersion}`)
+    const manifest = JSON.parse(readFileSync(join(directory, 'manifest.json')))
+    for (const artifact of manifest.artifacts) {
+      const result = spawnSync('tar', ['-xOf', join(directory, artifact.file), 'package/package.json'], { encoding: 'utf8', timeout: 10000 })
+      assert.equal(result.status, 0, result.stderr)
+      assert.deepEqual(JSON.parse(result.stdout).publishConfig, { registry, access: 'public', tag: 'next' }, `${target}: ${artifact.name}`)
+    }
+  }
+})
 // The fake npm never accesses a registry. Test copies are isolated from the candidate.
 function fixture(target = 'github-packages', stable = false) {
   const version = stable ? '0.2.0' : '0.2.0-dev.0'
