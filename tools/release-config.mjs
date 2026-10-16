@@ -1,5 +1,5 @@
 // Development candidates use a new identity; the published 0.1.0 artifacts remain immutable.
-export const releaseVersion = '0.2.0-rc.2'
+export const releaseVersion = '0.2.0-rc.3'
 export const releasePackages = ['protocol', 'core', 'tunnel', 'cli', 'dsh-ui', 'dsh-plugin']
 export const scopedPackageName = (scope, directory) => `@${scope}/dsh-remote-${({ 'dsh-ui': 'ui', 'dsh-plugin': 'everywhere' })[directory] ?? directory}`
 export const releaseRegistries = { 'github-packages': 'https://npm.pkg.github.com', npm: 'https://registry.npmjs.org' }
