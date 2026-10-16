@@ -17,6 +17,9 @@
 
 ## 执行状态
 
-版本准备完成；正式标签、同标签 CI、签名 APK、npm 写入与匿名安装验收、GitHub Release 及附件校验待执行。此处不提前声明发布成功。
+本次发布失败，未公开分发：标签 `v0.2.0-rc.1` 固定在 `cbe82bbe374003bfa45472397b7948ea39a20492`；同标签完整 CI 通过，但正式签名任务因调用可复用工作流时未传递 Secrets 而失败。四个签名 Secrets 在运行时为空；npm 与 GitHub Release 发布 job 均跳过，草稿无附件。
+
+- [版本 PR #2](https://github.com/BruceZhang1993/dsh-remote-everywhere/pull/2) 与 [失败发布运行](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38852184916) 保留。
+- 用户选择修复后发布 `0.2.0-rc.2`，保留失败的 `rc.1` 标签；不移动或重建旧标签。后续见 [rc.2 记录](release-0.2.0-rc.2.md)。
 
 安装及回滚见 [中文指引](install.md) / [English](install.en.md)。
