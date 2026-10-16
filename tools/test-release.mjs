@@ -7,24 +7,37 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
+import { releaseVersion } from './release-config.mjs'
+
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
-const candidate = join(root, '.cache/github-packages-0.1.0')
+const candidate = join(root, `.cache/github-packages-${releaseVersion}`)
 // The fake npm never accesses a registry. Test copies are isolated from the candidate.
-function fixture() {
+function fixture(target = 'github-packages', stable = false) {
+  const version = stable ? '0.2.0' : '0.2.0-dev.0'
   const directory = mkdtempSync(join(tmpdir(), 'dsh-release-test-'))
   mkdirSync(join(directory, 'tools')); mkdirSync(join(directory, 'bin'))
   cpSync(join(root, 'tools/publish-packages.mjs'), join(directory, 'tools/publish-packages.mjs'))
+  cpSync(join(root, 'tools/release-config.mjs'), join(directory, 'tools/release-config.mjs'))
   cpSync(join(root, 'pnpm-lock.yaml'), join(directory, 'pnpm-lock.yaml'))
-  const destination = join(directory, '.cache/github-packages-0.1.0')
+  if (version !== releaseVersion) {
+    const config = join(directory, 'tools/release-config.mjs')
+    writeFileSync(config, readFileSync(config, 'utf8').replace(`'${releaseVersion}'`, `'${version}'`))
+  }
+  const destination = join(directory, `.cache/${target}-${version}`)
   mkdirSync(destination, { recursive: true })
   const manifest = JSON.parse(readFileSync(join(candidate, 'manifest.json'), 'utf8'))
   manifest.sourceDirty = false
+  manifest.registry = target === 'npm' ? 'https://registry.npmjs.org' : manifest.registry
+  manifest.version = version
   const integrities = {}
   for (const artifact of manifest.artifacts) {
-    cpSync(join(candidate, artifact.file), join(destination, artifact.file))
+    const originalFile = artifact.file
+    artifact.version = version
+    artifact.file = artifact.file.replace(releaseVersion, version)
+    cpSync(join(candidate, originalFile), join(destination, artifact.file))
     integrities[artifact.name] = `sha512-${createHash('sha512').update(readFileSync(join(destination, artifact.file))).digest('base64')}`
   }
-  const registry = { integrities, existing: [], latest: {}, error: null, failPublish: null, failPromote: null, wrongLatest: false }
+  const registry = { integrities, existing: [], latest: {}, error: null, failPublish: null, failPromote: null, wrongLatest: false, metadataMismatch: false }
   const state = join(directory, 'registry.json'), calls = join(directory, 'calls.jsonl')
   writeFileSync(join(directory, 'bin/git'), `#!/usr/bin/env node
 if (process.argv[2] === 'rev-parse') console.log(process.env.GITHUB_SHA);
@@ -36,27 +49,29 @@ const fs = require('node:fs'), path = require('node:path');
 const state = JSON.parse(fs.readFileSync(process.env.TEST_REGISTRY));
 const args = process.argv.slice(2); fs.appendFileSync(process.env.TEST_CALLS, JSON.stringify(args)+'\\n');
 if (args[0] === 'view') {
-  const name = args[1].replace(/@0\\.1\\.0$/, '');
+  const name = args[1].endsWith('@${version}') ? args[1].slice(0, -'@${version}'.length) : args[1];
   const error = state.error || (!state.existing.includes(name) ? 'E404' : null);
   if (error) { console.log(JSON.stringify({error:{code:error}})); process.exit(1); }
-  console.log(JSON.stringify(args[2] === 'dist-tags.latest' ? (state.wrongLatest ? '0.0.0' : state.latest[name]) : state.integrities[name]));
+  const manifest = JSON.parse(fs.readFileSync(process.env.TEST_MANIFEST));
+  const metadata = state.metadataMismatch ? {} : manifest.artifacts.find(a=>a.name===name)?.dsh;
+  console.log(JSON.stringify(args[2] === 'dsh' ? metadata : args[2] === 'dist-tags.latest' ? (state.wrongLatest ? '0.0.0' : state.latest[name] ?? null) : state.integrities[name]));
 } else if (args[0] === 'publish') {
   const name = JSON.parse(fs.readFileSync(process.env.TEST_MANIFEST)).artifacts.find(a=>a.file===path.basename(args[1])).name;
   if (state.failPublish === name) process.exit(1);
   state.existing.push(name); fs.writeFileSync(process.env.TEST_REGISTRY, JSON.stringify(state));
 } else if (args[0] === 'dist-tag' && args[1] === 'add') {
-  const name = args[2].replace(/@0\\.1\\.0$/, '');
+  const name = args[2].endsWith('@${version}') ? args[2].slice(0, -'@${version}'.length) : args[2];
   if (state.failPromote === name) process.exit(1);
-  state.latest[name] = '0.1.0'; fs.writeFileSync(process.env.TEST_REGISTRY, JSON.stringify(state));
+  state.latest[name] = '${version}'; fs.writeFileSync(process.env.TEST_REGISTRY, JSON.stringify(state));
 } else process.exit(2);
 `, { mode: 0o700 })
   const manifestPath = join(destination, 'manifest.json')
   const run = (publish = true, overrides = {}) => {
     writeFileSync(manifestPath, JSON.stringify(manifest)); writeFileSync(state, JSON.stringify(registry))
-    return spawnSync(process.execPath, [join(directory, 'tools/publish-packages.mjs'), ...(publish ? [publish === 'promote' ? '--promote' : '--publish'] : [])], {
+    return spawnSync(process.execPath, [join(directory, 'tools/publish-packages.mjs'), ...(target === 'npm' ? ['--npm'] : []), ...(publish ? [publish === 'promote' ? '--promote' : '--publish'] : [])], {
       encoding: 'utf8', timeout: 10000, env: { ...process.env, PATH: `${join(directory, 'bin')}:${process.env.PATH}`,
         GITHUB_ACTIONS: 'true', NODE_AUTH_TOKEN: 'synthetic-test-only',
-        GITHUB_REPOSITORY: manifest.repository, GITHUB_SHA: manifest.sourceCommit, GITHUB_REF: 'refs/tags/v0.1.0',
+        GITHUB_REPOSITORY: manifest.repository, GITHUB_SHA: manifest.sourceCommit, GITHUB_REF: `refs/tags/v${version}`,
         DSH_RELEASE_APPROVED_SHA: manifest.sourceCommit, DSH_RELEASE_PROMOTION_APPROVED_SHA: manifest.sourceCommit,
         TEST_REGISTRY: state, TEST_CALLS: calls, TEST_MANIFEST: manifestPath, ...overrides },
     })
@@ -65,10 +80,10 @@ if (args[0] === 'view') {
     try { return readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line)).filter(args => args[0] === command) }
     catch (error) { if (error.code === 'ENOENT') return []; throw error }
   }
-  return { directory, destination, manifest, registry, run, published: () => recorded('publish'), promoted: () => recorded('dist-tag') }
+  return { directory, destination, version, manifest, registry, run, published: () => recorded('publish'), promoted: () => recorded('dist-tag') }
 }
-function scenario(name, body) {
-  test(name, () => { const context = fixture(); try { body(context) } finally { rmSync(context.directory, { recursive: true, force: true }) } })
+function scenario(name, body, target, stable) {
+  test(name, () => { const context = fixture(target, stable); try { body(context) } finally { rmSync(context.directory, { recursive: true, force: true }) } })
 }
 scenario('offline validation performs no registry writes', context => {
   assert.equal(context.run(false).status, 0); assert.equal(context.published().length, 0)
@@ -108,7 +123,7 @@ scenario('mismatched existing version aborts before the first write', context =>
 })
 scenario('identical partially published candidates resume without republishing', context => {
   context.registry.existing = context.manifest.artifacts.slice(0, 2).map(a => a.name)
-  assert.equal(context.run().status, 0); assert.equal(context.published().length, 3)
+  assert.equal(context.run().status, 0); assert.equal(context.published().length, context.manifest.artifacts.length - 2)
 })
 scenario('partial publication failure stops dependent packages', context => {
   context.registry.failPublish = context.manifest.artifacts[2].name
@@ -138,7 +153,7 @@ scenario('missing versions and registry failures cannot promote', context => {
 scenario('promotion changes only latest tags in dependency order and is repeatable', context => {
   context.registry.existing = context.manifest.artifacts.map(a => a.name)
   assert.equal(context.run('promote').status, 0)
-  assert.deepEqual(context.promoted().map(args => args[2]), context.manifest.artifacts.map(a => `${a.name}@0.1.0`))
+  assert.deepEqual(context.promoted().map(args => args[2]), context.manifest.artifacts.map(a => `${a.name}@${context.version}`))
   assert.ok(context.promoted().every(args => args[3] === 'latest'))
   assert.equal(context.run('promote').status, 0); assert.equal(context.published().length, 0)
 })
@@ -156,3 +171,35 @@ scenario('latest tag verification failure stops subsequent promotions', context 
   assert.match(context.run('promote').stderr, /latest tag verification failed/)
   assert.equal(context.promoted().length, 1); assert.equal(context.published().length, 0)
 })
+
+scenario('npm OIDC publishes public provenance under next', context => {
+  const result = context.run(true, { NODE_AUTH_TOKEN: '', ACTIONS_ID_TOKEN_REQUEST_URL: 'https://oidc.test', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'synthetic' })
+  assert.equal(result.status, 0, result.stderr)
+  assert.ok(context.published().every(args => args.includes('--provenance') && args.includes('--access=public') && args.includes('--tag=next')))
+}, 'npm')
+scenario('npm refuses publication without OIDC or a bootstrap token', context => {
+  assert.notEqual(context.run(true, { NODE_AUTH_TOKEN: '', ACTIONS_ID_TOKEN_REQUEST_URL: '', ACTIONS_ID_TOKEN_REQUEST_TOKEN: '' }).status, 0)
+  assert.equal(context.published().length, 0)
+}, 'npm')
+scenario('registry metadata mismatch stops writes even when tarball integrity matches', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name)
+  context.registry.metadataMismatch = true
+  assert.match(context.run().stderr, /DSH metadata differs/)
+  assert.equal(context.published().length, 0)
+}, 'npm')
+scenario('npm prerelease cannot be promoted to latest', context => {
+  assert.match(context.run('promote').stderr, /prereleases cannot/)
+  assert.equal(context.promoted().length, 0)
+}, 'npm')
+scenario('stable npm version can be promoted after separate acceptance approval', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name)
+  const result = context.run('promote')
+  assert.equal(result.status, 0, result.stderr)
+  assert.equal(context.promoted().length, context.manifest.artifacts.length)
+}, 'npm', true)
+scenario('stable npm promotion refuses rollback before changing any tag', context => {
+  context.registry.existing = context.manifest.artifacts.map(a => a.name)
+  context.registry.latest[context.manifest.artifacts.at(-1).name] = '99.0.0'
+  assert.match(context.run('promote').stderr, /latest backwards/)
+  assert.equal(context.promoted().length, 0)
+}, 'npm', true)

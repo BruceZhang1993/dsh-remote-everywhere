@@ -1,0 +1,119 @@
+name: Publish npm and Android release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash
+permissions:
+  contents: read
+concurrency:
+  group: version-release
+  cancel-in-progress: false
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      source_sha: ${{ steps.release.outputs.source_sha }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
+      - id: release
+        run: |
+          node tools/release-version.mjs --github-output
+          test "$GITHUB_REF" = "refs/tags/$(node --input-type=module -e 'import {releaseTag} from "./tools/release-config.mjs"; console.log(releaseTag)')"
+  verify:
+    needs: tag
+    uses: ./.github/workflows/ci.yml
+  android:
+    needs: verify
+    uses: ./.github/workflows/mobile-release.yml
+  npm:
+    needs: [tag, verify, android]
+    runs-on: ubuntu-latest
+    environment: npm
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    container:
+      image: ubuntu:24.04
+      options: --memory=8g --memory-swap=12g
+    env:
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: ${{ github.workspace }}
+      DSH_RELEASE_APPROVED_SHA: ${{ needs.verify.outputs.source_sha }}
+    steps:
+      - run: apt-get update && apt-get install -y git curl ca-certificates
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.3'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - run: npm install --global npm@12.2.0 --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts --registry=https://registry.npmjs.org
+      - name: Install browser before publishing
+        run: pnpm exec playwright install --with-deps chromium
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ needs.verify.outputs.npm_artifact }}
+          path: .cache/npm-${{ needs.tag.outputs.version }}
+      - name: Publish the verified tarballs using OIDC (or first-publish bootstrap token)
+        env:
+          NPM_BOOTSTRAP_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NPM_BOOTSTRAP_TOKEN" ]; then export NODE_AUTH_TOKEN="$NPM_BOOTSTRAP_TOKEN"; fi
+          node tools/publish-packages.mjs --npm --publish
+      - name: Verify fresh anonymous registry install and management UI
+        run: DSH_UI_SMOKE=1 bash tools/package-smoke.sh --registry npm
+      - name: Promote a stable release only after registry acceptance
+        if: needs.tag.outputs.prerelease == 'false'
+        env:
+          NPM_BOOTSTRAP_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DSH_RELEASE_PROMOTION_APPROVED_SHA: ${{ needs.verify.outputs.source_sha }}
+        run: |
+          if [ -n "$NPM_BOOTSTRAP_TOKEN" ]; then export NODE_AUTH_TOKEN="$NPM_BOOTSTRAP_TOKEN"; fi
+          node tools/publish-packages.mjs --npm --promote
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: npm-registry-acceptance
+          path: .cache/npm-registry-${{ needs.tag.outputs.version }}/acceptance.json
+          if-no-files-found: warn
+  github-release:
+    needs: [tag, npm, android]
+    runs-on: ubuntu-latest
+    environment: github-release
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: android-signed-release
+          path: .cache/mobile-release
+      - run: node tools/github-release.mjs --publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DSH_RELEASE_APPROVED_SHA: ${{ needs.tag.outputs.source_sha }}

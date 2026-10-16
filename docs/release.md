@@ -1,5 +1,7 @@
 # v0.1.0 候选、安装与发布
 
+> 本文保留 `0.1.0` GitHub Packages 发布记录和当时的流程。当前 npmjs 自动发布、版本 PR、Android 正式签名及 GitHub Release 流程见 [CI 与版本发布](ci-release.md)。
+
 `0.1.0` 五包已于 2026-10-15 按用户授权完成 GitHub Packages 首发（命令 tag 为 `next`），来源为 `v0.1.0` / `5556e67`；注册表完整性及全新消费者安装验收通过，见 [发布记录](release-0.1.0.md)。公开仓库为 [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere)，CI 使用 GitHub Actions，npm registry 为 `https://npm.pkg.github.com`。
 此首发版本的独立 Noise/完整供应链审查、持续长期 fuzz、私密披露收件和 M3 平台验收仍未完成；本次发布授权不代表这些验证通过。此处仅涉及五个 npm 包，正式签名 App 分发仍保留。
 源码包继续保留 alpha 版本与工作区名称。普通候选写入 `.cache/release-0.1.0`；GitHub Packages 候选写入 `.cache/github-packages-0.1.0`，只在 staging 改版本、包名、内部引用、Cordis patch 和发布元数据。

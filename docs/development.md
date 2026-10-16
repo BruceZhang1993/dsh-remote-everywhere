@@ -102,7 +102,7 @@ tools/run-limited.sh env CLOUDFLARED=/absolute/path/to/cloudflared pnpm test:tun
 ```
 
 不设置 `CLOUDFLARED` 时，该本机 smoke 使用 M0 的 `spikes/tunnel/cloudflared`。CI 已配置 Node、
-纯 Dart、互操作、本地包安装与 Android AOT jobs；容器使用 `--memory=8g --memory-swap=12g`
+纯 Dart、互操作、tarball 安装与管理 UI、实际移动端检查/Android 构建；版本 PR、npmjs 与正式 APK 发布配置见 [CI 与版本发布](ci-release.md)。构建容器使用 `--memory=8g --memory-swap=12g`
 （总内存+swap 12 GiB）。远程 CI 的实际运行结果需另行确认。
 
 ### 3.0.1 两进程诊断 CLI

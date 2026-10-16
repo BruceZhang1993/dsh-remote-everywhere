@@ -1,0 +1,75 @@
+name: Prepare and tag a version
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Increasing version, e.g. 0.2.0-rc.1 or 0.2.0'
+        required: true
+        type: string
+  push:
+    branches: [master]
+    paths: ['tools/release-config.mjs']
+defaults:
+  run:
+    shell: bash
+permissions:
+  contents: read
+concurrency:
+  group: version-preparation
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: master
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
+      - name: Open a version PR and request its checks
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node tools/release-version.mjs --set "$RELEASE_VERSION"
+          branch="feature/$(date -u +%Y%m%d)-releaseV${RELEASE_VERSION//[.-]/}"
+          git switch -c "$branch"
+          git config user.name github-actions[bot]
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/release-config.mjs apps/mobile/pubspec.yaml
+          git commit -m "chore: prepare release $RELEASE_VERSION"
+          git push origin "$branch"
+          gh pr create --base master --head "$branch" --title "[chore] prepare release $RELEASE_VERSION" --body "Update npm and Android to $RELEASE_VERSION. Merging this PR creates the release tag and starts verified publication."
+          gh workflow run ci.yml --ref "$branch"
+  tag:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
+      - name: Tag the merged version and dispatch its release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          node tools/release-tag.mjs

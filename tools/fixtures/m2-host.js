@@ -57,13 +57,17 @@ export function apply(ctx) {
   }))
   ctx.tools.register(defineTool({ name: 'm2_continuable_probe', description: 'Test fixture: create one continuable child.', parameters: {},
     output: { schema: { type: 'object', additionalProperties: true }, render: (args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
-    execute: async (args, exec) => ctx.get('subagents').startContinuable({ provider: 'spawn', label: 'M2 continuable child', request: { parent: exec.agent, prompt: [{ type: 'text', text: 'M2 continuable output' }], maxDepth: 1 }, signal: exec.signal }),
+    execute: async (args, exec) => {
+      const run = await ctx.get('subagents').startActivation({ provider: 'spawn', label: 'M2 continuable child', request: { parent: exec.agent, prompt: [{ type: 'text', text: 'M2 continuable output' }], maxDepth: 1 }, signal: exec.signal, delivery: 'caller' })
+      await run.result
+      return { childId: run.childId }
+    },
   }))
   ctx.tools.register(defineTool({ name: 'm2_subagent_probe', description: 'Test fixture: create one bounded in-process child.', parameters: {},
     output: { schema: { type: 'object', additionalProperties: true }, render: (args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
     execute: async (args, exec) => {
-      const run = await ctx.get('subagents').start('spawn', { parent: exec.agent, prompt: [{ type: 'text', text: 'M2 child output' }], signal: exec.signal, label: 'M2 child', maxDepth: 1 })
-      try { return { childId: run.id, result: await run.result } }
+      const run = await ctx.get('subagents').startActivation({ provider: 'spawn', label: 'M2 child', request: { parent: exec.agent, prompt: [{ type: 'text', text: 'M2 child output' }], maxDepth: 1 }, signal: exec.signal, delivery: 'caller' })
+      try { return { childId: run.childId, result: await run.result } }
       finally { await run.dispose() }
     },
   }))

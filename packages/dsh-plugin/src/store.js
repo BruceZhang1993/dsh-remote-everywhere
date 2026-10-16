@@ -94,5 +94,14 @@ export class DeviceStore {
       this.save(this.devices.map(record => record.deviceId === id ? { ...record, name } : record))
     })
   }
+  setEndpoint(id, endpoint) {
+    let url
+    try { url = new URL(endpoint) } catch { fail('invalid endpoint') }
+    if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password || url.hash || endpoint.length > 2048) fail('invalid endpoint')
+    return this.update(() => {
+      if (!this.devices.some(record => record.deviceId === id && !record.revokedAt && record.remoteCaps?.length)) throw new ProtocolError('unauthorized', 'unknown remote device')
+      this.save(this.devices.map(record => record.deviceId === id ? { ...record, endpoint: url.href } : record))
+    })
+  }
   close() { this.keyPair.secretKey.fill(0) }
 }

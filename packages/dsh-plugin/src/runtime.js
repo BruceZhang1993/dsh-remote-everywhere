@@ -42,7 +42,7 @@ export class RemoteRuntime extends EventEmitter {
   }
   observe(event, data, connection) {
     if (this.audit.closed && this.stopping) return false
-    try { this.audit.record(event, data); return true }
+    try { this.audit.record(event, data); queueMicrotask(() => this.emit('change')); return true }
     catch { connection?.close(new ProtocolError('internal', 'remote audit unavailable')); return false }
   }
   async start() {
@@ -156,7 +156,7 @@ export class RemoteRuntime extends EventEmitter {
     register('approval.decide', 'approval', params => this.interactions.decide(params.approvalId, params.outcome, connection))
     register('question.answer', 'approval', params => this.interactions.decide(params.questionId, params.answer, connection))
     register('device.list', 'admin', () => ({ devices: this.devices() }))
-    register('device.rename', 'admin', params => { this.store.rename(params.deviceId, params.name); return { ok: true } })
+    register('device.rename', 'admin', params => { this.store.rename(params.deviceId, params.name); this.emit('change'); return { ok: true } })
     register('device.revoke', 'admin', params => {
       if (params.deviceId === device.deviceId) throw new ProtocolError('invalid-argument', 'revoke current device locally')
       this.revoke(params.deviceId)
@@ -227,6 +227,7 @@ export class RemoteRuntime extends EventEmitter {
     try {
       const connected = await client.connecting
       this.audit.record('connection.authenticated', { deviceId: id, direction: 'outbound' })
+      this.emit('change')
       return connected
     }
     catch (error) {
