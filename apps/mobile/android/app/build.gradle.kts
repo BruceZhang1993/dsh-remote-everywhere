@@ -4,6 +4,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseStore = System.getenv("ANDROID_KEYSTORE_PATH")
+val releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val releaseAlias = System.getenv("ANDROID_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+val hasReleaseSigning = listOf(releaseStore, releaseStorePassword, releaseAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
+check(System.getenv("DSH_REQUIRE_RELEASE_SIGNING") != "1" || hasReleaseSigning) {
+    "Release signing is required; provide all four ANDROID_KEYSTORE/KEY variables."
+}
+
 android {
     namespace = "dev.dshremote.dsh_remote_mobile"
     compileSdk = flutter.compileSdkVersion
@@ -29,11 +38,21 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("distribution") {
+                storeFile = file(releaseStore!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Local CI artifacts may use debug signing; distribution explicitly requires the release key.
+            signingConfig = signingConfigs.getByName(if (hasReleaseSigning) "distribution" else "debug")
         }
     }
 }

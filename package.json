@@ -22,6 +22,7 @@
     "@dsh-remote/tunnel": "workspace:*",
     "noise-curve-ed": "2.1.0",
     "noise-handshake": "4.2.0",
+    "playwright": "1.62.1",
     "typescript": "5.9.3"
   }
 }

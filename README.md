@@ -1,5 +1,10 @@
 # DSH Remote Everywhere
 
+[![CI](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/ci.yml)
+[![Fuzz](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/fuzz.yml/badge.svg?branch=master)](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/fuzz.yml)
+[![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![DSH Desktop 0.2.1-alpha.2](https://img.shields.io/badge/DSH_Desktop-0.2.1--alpha.2-blue)](docs/install.en.md)
+
 English | [中文](README.zh-CN.md)
 
 A DeepSeek Harness (DSH) plugin that gives **any DSH instance both sides of a remote-access
@@ -8,7 +13,13 @@ accept connections from them. The same protocol is spoken by native Flutter apps
 iOS, so a phone can pair with any enabled controlled machine. The controlled side supports a free,
 one-click public tunnel.
 
-> **Status: early implementation; M3 initial development complete, M4 review incomplete.** Real DSH instances can pair and control sessions, with native GUI approvals, files and bounded terminal operations. The Flutter controller is in [apps/mobile](apps/mobile/README.md). See [M3 evidence and deferred acceptance](docs/m3-summary.md), [M4 results](docs/m4-summary.md) and [installation / rollback](docs/m2-install.md). Independent security review, physical-device acceptance, iOS build validation and real-model mobile acceptance remain pending. Initial npm `0.1.0` publication uses `next`; see the [release record](docs/release-readiness.md).
+> **Status: early implementation; M3 initial development complete, M4 review incomplete.** Real DSH instances can pair and control sessions, with native GUI approvals, files and bounded terminal operations. The Flutter controller is in [apps/mobile](apps/mobile/README.md). See [M3 evidence and deferred acceptance](docs/m3-summary.md), [M4 results](docs/m4-summary.md) and [installation / rollback](docs/install.en.md). Independent security review, physical-device acceptance, iOS build validation and real-model mobile acceptance remain pending. The historical `0.1.0` publication used GitHub Packages; npmjs and signed APK publication follow the new release pipeline.
+
+## Installation
+
+Use **DSH Desktop 0.2.1-alpha.2**. After a release is available, open **Plugins → Add plugin**, select the official npm registry and enter `@brucezhang1993/dsh-remote-everywhere@next` for prereleases. The sidebar entry is **Remote devices**. Install the separate Android APK from the [Releases list](https://github.com/BruceZhang1993/dsh-remote-everywhere/releases), including Pre-release builds; iOS IPA distribution is pending.
+
+See the [installation guide](docs/install.en.md) for pinned versions, stable releases, APK checksums, first pairing and rollback. If the selected version/assets are absent, wait for publication. The historical GitHub Packages `0.1.0` targets an older host and has no management UI. CI badges show remote `master` runs, not publication or device acceptance.
 
 ## What problem this solves
 
@@ -22,6 +33,10 @@ This project fills that gap with one plugin and one protocol, without an account
 routing plaintext through a third party.
 
 ## Documentation
+
+For npmjs publishing, version PRs, signed Android APKs and GitHub Releases, see [CI and release configuration](docs/ci-release.md) and the [current preflight report](docs/release-preflight.md) (Chinese). Publication status and acceptance scope are recorded separately from CI badges.
+
+The integrated management UI targets **DSH Desktop 0.2.1-alpha.2**: open **Remote devices** in the sidebar or the plugin details. See [UI features and local validation](docs/plugin-ui.en.md) and the [implementation plan](docs/plugin-ui-plan.md). See the installation guide for published versions; historical `0.1.0` does not contain this UI.
 
 M1 diagnostics: `pnpm install --frozen-lockfile`, then `pnpm remote` for CLI usage. See
 [development instructions](docs/development.md#301-两进程诊断-cli) for public-key binding, two-process

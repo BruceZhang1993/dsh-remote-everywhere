@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { SecureConnection, connectTransport, deviceId } from '@dsh-remote/core'
 import { KINDS, ProtocolError, assertValue } from '@dsh-remote/protocol'
 
-export async function pairDevice(store, qr, confirm, name = 'DSH Remote') {
+export async function pairDevice(store, qr, confirm, name = 'DSH Remote', { signal } = {}) {
   assertValue('PairingPayload', qr)
   if (qr?.v !== 1 || !/^[A-Za-z0-9_-]{22}$/.test(qr.sid) || !/^[A-Za-z0-9+/]{43}=$/.test(qr.pk) ||
       !Number.isSafeInteger(qr.exp) || qr.exp * 1000 <= Date.now() || qr.exp * 1000 > Date.now() + 300000) throw new ProtocolError('invalid-argument', 'invalid or expired pairing payload')
@@ -11,14 +11,24 @@ export async function pairDevice(store, qr, confirm, name = 'DSH Remote') {
   if (!['ws:', 'wss:'].includes(endpoint.protocol) || endpoint.username || endpoint.password) throw new ProtocolError('invalid-argument', 'invalid pairing endpoint')
   endpoint.searchParams.set('sid', qr.sid)
   const peer = Buffer.from(qr.pk, 'base64')
-  const connection = new SecureConnection(await connectTransport(endpoint.href), { initiator: true, keyPair: store.keyPair, peerPublicKey: peer, pairSid: qr.sid, caps: ['admin'], name, kind: 'dsh', requestTimeoutMs: 180000 })
+  const transport = await connectTransport(endpoint.href, { signal })
+  if (signal?.aborted) { transport.close(); throw new ProtocolError('cancelled', 'pairing cancelled') }
+  const connection = new SecureConnection(transport, { initiator: true, keyPair: store.keyPair, peerPublicKey: peer, pairSid: qr.sid, caps: ['admin'], name, kind: 'dsh', requestTimeoutMs: 180000 })
+  const abort = () => connection.close(new ProtocolError('cancelled', 'pairing cancelled'))
+  signal?.addEventListener('abort', abort, { once: true })
+  if (signal?.aborted) abort()
   try {
     await connection.ready
-    if (await confirm({ sas: connection.sas, name: qr.name, deviceId: deviceId(peer) }) !== true) throw new ProtocolError('cancelled', 'SAS not confirmed')
-    const result = await connection.request('pair.confirm', { deviceId: deviceId(store.keyPair.publicKey), sas: connection.sas })
+    const confirmed = await Promise.race([
+      confirm({ sas: connection.sas, name: qr.name, deviceId: deviceId(peer) }),
+      connection.closed.then(error => { throw error }),
+    ])
+    if (confirmed !== true) throw new ProtocolError('cancelled', 'SAS not confirmed')
+    const result = await connection.request('pair.confirm', { deviceId: deviceId(store.keyPair.publicKey), sas: connection.sas }, { signal })
+    signal?.throwIfAborted()
     if (result.ok !== true || result.deviceId !== deviceId(peer)) throw new ProtocolError('unauthorized', 'invalid pair receipt')
     return store.grant(peer, connection.peerHello.name, result.caps, qr.relay)
-  } finally { connection.close() }
+  } finally { signal?.removeEventListener('abort', abort); connection.close() }
 }
 
 /** Controller owns each connection and bounded stream receive buffer. */

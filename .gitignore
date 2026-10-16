@@ -39,6 +39,9 @@ spikes/noise-interop/dart/.dart_tool/
 # cryptography 2.9.0 exactly because its crypto behaviour is version-specific.
 
 # --- Secrets: never commit device keys or paired device tables ---
+/.signing/
+*.jks
+*.keystore
 *.key
 *.pem
 device-keys.json

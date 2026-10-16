@@ -1,5 +1,7 @@
 # v0.1.0 candidate, installation and release
 
+> This document retains the `0.1.0` GitHub Packages release record and its original procedure. For the current npmjs/version PR/signed Android/GitHub Release pipeline, see [CI and release configuration](ci-release.md) (Chinese).
+
 All five `0.1.0` packages were published on 2026-10-15 under the user's authorization, with the command tag `next`, from `v0.1.0` / `5556e67`. Registry integrity and fresh consumer installation passed; see the [release record](release-0.1.0.md). The repository is [BruceZhang1993/dsh-remote-everywhere](https://github.com/BruceZhang1993/dsh-remote-everywhere); CI uses GitHub Actions and the registry is `https://npm.pkg.github.com`.
 Independent Noise/full supply-chain review, sustained fuzz, private-report receipt and deferred M3 platform acceptance remain incomplete. Publication does not assert that these checks passed. This flow covers five npm packages; signed App distribution remains separate.
 Source packages retain their alpha names/versions. Standard candidates use `.cache/release-0.1.0`; GitHub candidates use `.cache/github-packages-0.1.0`. Only staging changes package names, imports, Cordis patch, versions and publication metadata.
