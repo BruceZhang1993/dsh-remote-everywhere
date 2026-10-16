@@ -1,6 +1,6 @@
 # 0.2.0-rc.3 发布记录
 
-2026-10-16，沿用保留失败标签的策略，修复真实 npm 首发发现的问题后准备发布 `0.2.0-rc.3`。历史 rc.1、rc.2 标签和失败记录保留，不覆盖既有版本。
+2026-10-16，沿用保留失败标签的策略，修复真实 npm 首发发现的问题后已发布 `0.2.0-rc.3`。历史 rc.1、rc.2 标签和失败记录保留，不覆盖既有版本。
 
 ## 修复与发布范围
 
@@ -18,6 +18,14 @@
 
 ## 执行状态
 
-发布准备中；正式标签、同标签 CI、签名 APK、六包 npm 发布、匿名安装/UI 验收和 GitHub Release 及附件校验待执行。完成后回填实际证据。
+- [GitHub Release](https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/tag/v0.2.0-rc.3) 已公开，标记为预发布；六个附件全部上传且服务端 SHA-256 与原 CI 产物一致。
+- 来源固定为 `v0.2.0-rc.3` / `cf2e4d817b21012e306f1e7a89e086bd2ec54bfa`，未重建、覆盖包版本或移动历史标签。
+- [原发布运行](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38857029144) 的协议/安全、移动 Android CI 与正式签名通过；npm 六包上传及逐包校验通过，随后清理 `latest` 返回 403，npm job 保持失败，GitHub Release job 跳过。交互登录后的删除尝试也返回 400，未改变标签。
+- 用户随后明确决定“就用 latest 标签吧，不用改了”，因此停止删除且未重跑会强制清理的原任务。保留实际标签：六包 `next=0.2.0-rc.3`；主插件、UI、CLI、core、tunnel 的 `latest=0.2.0-rc.3`，protocol 的 `latest=0.2.0-rc.2`。需要统一版本时显式指定 `0.2.0-rc.3`。本次保留 RC 的 latest 不表示稳定版验收完成。
+- 在本机 8 GiB 内存 / 4 GiB swap scope 中，以全新目录/缓存、匿名身份且禁用安装脚本，从公共 npm 安装六包；来源与 SHA-512 全部匹配。CLI 加密连接、两个真实 DSH 宿主与管理 UI 回归通过，浏览器控制台错误为 0；模型使用确定性 fixture。这是本机消费者证据，`runId=null`，不冒充远端发布 job 通过。
+- 复用同次 CI 的正式签名 APK 与声明材料，人工逐个上传、比对全部服务端 digest 后公开 Release。最终再次匿名读回六包元数据及标签，核对六附件大小/digest、APK 来源、签名和版本，全部通过。临时 npm CLI 会话已 logout，临时凭据配置已删除。
+- Android：`dev.dshremote.dsh_remote_mobile`，versionName `0.2.0-rc.3`，versionCode `5`，APK v2 签名通过；APK SHA-256：`dc5f0fefcb3a608e292c2c83257f8cea7c09a17f49c30b6156491042c9105b74`；证书 SHA-256：`eb1947fa347d7363d27fc04809d69da753212f422900368ac9c05a5cd7f76a95`。
+
+机器可读结果见 [发布验收证据](release-0.2.0-rc.3.json)。完整自动发布流水线仍为 failure；公开分发和人工补充验收已完成，两者分别记录。
 
 安装及回滚见 [中文指引](install.md) / [English](install.en.md)。

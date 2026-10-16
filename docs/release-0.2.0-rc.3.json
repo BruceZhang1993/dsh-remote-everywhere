@@ -1,0 +1,223 @@
+{
+  "verified": true,
+  "version": "0.2.0-rc.3",
+  "sourceCommit": "cf2e4d817b21012e306f1e7a89e086bd2ec54bfa",
+  "workflow": {
+    "conclusion": "failure",
+    "headSha": "cf2e4d817b21012e306f1e7a89e086bd2ec54bfa",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "tag",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "verify / protocol-core",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "verify / mobile / android",
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "verify / mobile / ios",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "android / android",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "name": "npm",
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "github-release",
+        "status": "completed"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/runs/38857029144"
+  },
+  "recovery": {
+    "mode": "manual",
+    "reason": "maintainer approved retaining existing latest after automated cleanup failed",
+    "acceptanceLocation": "local"
+  },
+  "release": "https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/tag/v0.2.0-rc.3",
+  "android": {
+    "file": "dsh-remote-android-0.2.0-rc.3.apk",
+    "applicationId": "dev.dshremote.dsh_remote_mobile",
+    "versionCode": 5,
+    "certificateSha256": "eb1947fa347d7363d27fc04809d69da753212f422900368ac9c05a5cd7f76a95",
+    "sha256": "dc5f0fefcb3a608e292c2c83257f8cea7c09a17f49c30b6156491042c9105b74",
+    "signatureV2": true
+  },
+  "packages": [
+    {
+      "name": "@brucezhang1993/dsh-remote-protocol",
+      "version": "0.2.0-rc.3",
+      "integrity": "sha512-W3jKudRWzR8QW1j1Fe9cirXUYQALbO3i38CXcKv1kPSa3tajbLaUu4baRJ3mkZeKLnzp7FsmvkudU0e7QUjYlA==",
+      "distTags": {
+        "next": "0.2.0-rc.3",
+        "latest": "0.2.0-rc.2"
+      },
+      "dsh": null
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-core",
+      "version": "0.2.0-rc.3",
+      "integrity": "sha512-VDrzmoRFrkM/fwbQTWK4Iik20HDY5LbDylHC9ZAMaPnxBfLC8DlADcKa6gIE8gVFjwQCC+Kie9rmx7guOB44RA==",
+      "distTags": {
+        "latest": "0.2.0-rc.3",
+        "next": "0.2.0-rc.3"
+      },
+      "dsh": null
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-tunnel",
+      "version": "0.2.0-rc.3",
+      "integrity": "sha512-I5hot/4PMQfgorjxB4ox2/SWhGWk3IDEKFqYiCC8lw/mwS0h4nozBSLJlxuNzirMkRppPdi9Z+n3sdFNsNqXWQ==",
+      "distTags": {
+        "latest": "0.2.0-rc.3",
+        "next": "0.2.0-rc.3"
+      },
+      "dsh": null
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-cli",
+      "version": "0.2.0-rc.3",
+      "integrity": "sha512-4XKn8nz/DRdLf3KHBkXFeMC2e9puDw0CbsQjv5sSRrdKZV+wLNn0ydBGZ5NsvIdmp4kMn2Gm/k4udtjWprcdlg==",
+      "distTags": {
+        "latest": "0.2.0-rc.3",
+        "next": "0.2.0-rc.3"
+      },
+      "dsh": null
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-ui",
+      "version": "0.2.0-rc.3",
+      "integrity": "sha512-wU1mvQGl4Eow3TDGjZlgKs0L1CnRd6GsU7j1CU4KkIk8SxELTuVc+q0zsrij8vREOYoYAJOLGsbDYuJtDca5vQ==",
+      "distTags": {
+        "latest": "0.2.0-rc.3",
+        "next": "0.2.0-rc.3"
+      },
+      "dsh": {
+        "client": {
+          "inject": [
+            "@deepseek-ai/dsh-client-connection",
+            "@deepseek-ai/dsh-client-locale",
+            "@deepseek-ai/dsh-client-ui-plugin-manager",
+            "@deepseek-ai/dsh-client-ui-sidebar"
+          ],
+          "platform": "web"
+        }
+      }
+    },
+    {
+      "name": "@brucezhang1993/dsh-remote-everywhere",
+      "version": "0.2.0-rc.3",
+      "integrity": "sha512-QwugPk3AuBuW0pM0jFokywMhx6QGPxkt2HjqCLhbxFD1JNUJJMO/Ag8zp1Kkw8yZfzq8zOIEXA1+5SN1ce4TQQ==",
+      "distTags": {
+        "latest": "0.2.0-rc.3",
+        "next": "0.2.0-rc.3"
+      },
+      "dsh": {
+        "bundle": {
+          "patch": "./cordis.patch.yml"
+        }
+      }
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "sourceCommit": "cf2e4d817b21012e306f1e7a89e086bd2ec54bfa",
+    "registry": "https://registry.npmjs.org",
+    "runId": null,
+    "node": "v22.23.3",
+    "installScripts": false,
+    "freshCache": true,
+    "diagnostic": true,
+    "genuineDshProcesses": 2,
+    "deterministicModelFixture": true,
+    "anonymous": true,
+    "managementUi": true,
+    "packages": [
+      {
+        "name": "@brucezhang1993/dsh-remote-protocol",
+        "version": "0.2.0-rc.3",
+        "integrity": "sha512-W3jKudRWzR8QW1j1Fe9cirXUYQALbO3i38CXcKv1kPSa3tajbLaUu4baRJ3mkZeKLnzp7FsmvkudU0e7QUjYlA=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-core",
+        "version": "0.2.0-rc.3",
+        "integrity": "sha512-VDrzmoRFrkM/fwbQTWK4Iik20HDY5LbDylHC9ZAMaPnxBfLC8DlADcKa6gIE8gVFjwQCC+Kie9rmx7guOB44RA=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-tunnel",
+        "version": "0.2.0-rc.3",
+        "integrity": "sha512-I5hot/4PMQfgorjxB4ox2/SWhGWk3IDEKFqYiCC8lw/mwS0h4nozBSLJlxuNzirMkRppPdi9Z+n3sdFNsNqXWQ=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-cli",
+        "version": "0.2.0-rc.3",
+        "integrity": "sha512-4XKn8nz/DRdLf3KHBkXFeMC2e9puDw0CbsQjv5sSRrdKZV+wLNn0ydBGZ5NsvIdmp4kMn2Gm/k4udtjWprcdlg=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-ui",
+        "version": "0.2.0-rc.3",
+        "integrity": "sha512-wU1mvQGl4Eow3TDGjZlgKs0L1CnRd6GsU7j1CU4KkIk8SxELTuVc+q0zsrij8vREOYoYAJOLGsbDYuJtDca5vQ=="
+      },
+      {
+        "name": "@brucezhang1993/dsh-remote-everywhere",
+        "version": "0.2.0-rc.3",
+        "integrity": "sha512-QwugPk3AuBuW0pM0jFokywMhx6QGPxkt2HjqCLhbxFD1JNUJJMO/Ag8zp1Kkw8yZfzq8zOIEXA1+5SN1ce4TQQ=="
+      }
+    ],
+    "cleanup": "isolated profile removed on exit; upgrade and previous-version rollback not tested"
+  },
+  "assets": [
+    {
+      "name": "ANDROID-LICENSE-REVIEW.md",
+      "size": 3224,
+      "digest": "sha256:5d33446c4d6c1bd1cf88a518d37633693063a8d17ecf6f4459cb66ef34280e8e",
+      "browser_download_url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/download/v0.2.0-rc.3/ANDROID-LICENSE-REVIEW.md"
+    },
+    {
+      "name": "ANDROID-NOTICES.md",
+      "size": 4593,
+      "digest": "sha256:4300e031f62660d92cd103e6718fe46d116be75f0c9a3663bf28fb09c2f498b2",
+      "browser_download_url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/download/v0.2.0-rc.3/ANDROID-NOTICES.md"
+    },
+    {
+      "name": "dsh-remote-android-0.2.0-rc.3.apk",
+      "size": 69109939,
+      "digest": "sha256:dc5f0fefcb3a608e292c2c83257f8cea7c09a17f49c30b6156491042c9105b74",
+      "browser_download_url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/download/v0.2.0-rc.3/dsh-remote-android-0.2.0-rc.3.apk"
+    },
+    {
+      "name": "LICENSE.txt",
+      "size": 1091,
+      "digest": "sha256:efe8ff55d5af7c365c463a5dd6bb9d583ab6a9d3a8488427be79ac6336cec09b",
+      "browser_download_url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/download/v0.2.0-rc.3/LICENSE.txt"
+    },
+    {
+      "name": "release-manifest.json",
+      "size": 438,
+      "digest": "sha256:8c2043a6a6fd7a5b2c8fb7d490f11f3f5f49b9e92bb9a3626ba58eb7e238c5b7",
+      "browser_download_url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/download/v0.2.0-rc.3/release-manifest.json"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 453,
+      "digest": "sha256:dfa544046fbbae885cee8faea66b4a837ec1b24776e9a766b2200019c3ab04ab",
+      "browser_download_url": "https://github.com/BruceZhang1993/dsh-remote-everywhere/releases/download/v0.2.0-rc.3/SHA256SUMS"
+    }
+  ]
+}

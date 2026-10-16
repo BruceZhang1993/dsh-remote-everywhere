@@ -15,7 +15,7 @@ Check the [Releases list](https://github.com/BruceZhang1993/dsh-remote-everywher
    @brucezhang1993/dsh-remote-everywhere@next
    ```
 
-   Select the official registry, **`https://registry.npmjs.org`**. Use `next` for prereleases and `latest` only after a stable release exists. For a pinned version, replace `next` with the full release version without the tag's `v` prefix. Omitting the suffix may fail when only `next` exists.
+   Select the official registry, **`https://registry.npmjs.org`**. Use `next` for prereleases. For `0.2.0-rc.3`, the maintainer retained the main plugin’s existing `latest`, so `@latest` also installs this RC; it remains a prerelease. Follow the selected release notes. For a pinned version, replace `next` with the full release version without the tag's `v` prefix. Omitting the suffix may fail when only `next` exists.
 3. Let the host finish installation and enable/reload as prompted. The main plugin brings in the matching UI and protocol dependencies; do not install six packages individually or copy files into the system application directory.
 4. Open **Remote devices** in the sidebar or the **DSH Remote Everywhere** plugin details. First activation also offers the management entry. Confirm that the local identity and device page appears.
 
@@ -59,4 +59,4 @@ npm install --ignore-scripts --registry=https://registry.npmjs.org @brucezhang19
 ./node_modules/.bin/dsh-remote help
 ```
 
-Use `latest` only after a stable version passes registry acceptance and promotion. The authenticated GitHub Packages procedure remains in the [historical release guide](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.en.md).
+Normally `latest` follows stable registry acceptance and promotion. For this release, the maintainer retained the existing tags, including CLI `latest=0.2.0-rc.3`. Pin `0.2.0-rc.3` when installing all six packages together; see the [release record](release-0.2.0-rc.3.md) for exact tag values. The authenticated GitHub Packages procedure remains in the [historical release guide](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.en.md).

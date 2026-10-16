@@ -15,7 +15,7 @@
    @brucezhang1993/dsh-remote-everywhere@next
    ```
 
-   `next` 用于预发布。已有稳定版后可使用 `@latest`。要固定版本，将 `next` 替换为发布说明中的完整版本（不含 tag 的 `v` 前缀）；不要省略版本后缀，否则首次仅有 `next` 时可能找不到 `latest`。
+   `next` 用于预发布。`0.2.0-rc.3` 按维护者决定保留了主插件的 `latest`，此时 `@latest` 也会安装该 RC，仍属预发布；以对应发布说明为准。要固定版本，将 `next` 替换为发布说明中的完整版本（不含 tag 的 `v` 前缀）；不要省略版本后缀，否则首次仅有 `next` 时可能找不到 `latest`。
 3. 等待宿主完成安装，按宿主提示启用或重载插件。主插件会自动安装同版 UI 伴生包及协议依赖，无需逐个手工添加六个 npm 包，也无需向系统安装目录复制文件。
 4. 打开侧栏 **远程设备**，或 **插件 → DSH Remote Everywhere** 详情页；首次启用也会提供「打开远程管理」。看到本机身份与设备页面，即完成入口检查。
 
@@ -59,4 +59,4 @@ npm install --ignore-scripts --registry=https://registry.npmjs.org @brucezhang19
 ./node_modules/.bin/dsh-remote help
 ```
 
-`latest` 仅适用于已通过注册表验收并晋级的稳定版。旧 GitHub Packages 安装流程与凭据要求保留在[历史发布文档](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.md)。
+通常 `latest` 用于已通过注册表验收并晋级的稳定版；`0.2.0-rc.3` 本次保留已有 `latest`，CLI 的 `latest` 也指向该 RC。六包统一安装请显式指定 `0.2.0-rc.3`，具体标签见[发布记录](release-0.2.0-rc.3.md)。旧 GitHub Packages 安装流程与凭据要求保留在[历史发布文档](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.md)。
