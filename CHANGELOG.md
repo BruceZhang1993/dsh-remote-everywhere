@@ -5,6 +5,11 @@
 
 ---
 
+## 2026-10-16 — 0.2.0-rc.1 发布准备
+
+- 桌面插件管理 UI、公共 npm 六包和正式签名 Android 分发进入 RC 发布流程；npm 使用 `next`，Android versionCode 递增为 3。
+- 用户授权发布 RC，保留并披露独立安全/许可证审查、真机/真实模型、私密漏洞收件及其他既有延期验收；正式发布结果见 [版本记录](docs/release-0.2.0-rc.1.md)。
+
 ## 2026-10-15 — 0.1.0 首次 npm 发布流程
 
 - 首发完成：`v0.1.0` 固定 `5556e67`，五包已上传 GitHub Packages（发布命令 tag 为 `next`），registry SHA-512 和全新安装/CLI/真实双宿主回归通过；完整发布 workflow success。五包公开页面已核验可见，未手动改可见性；未执行 latest 晋级，独立/平台验收保留，见 [发布记录](docs/release-0.1.0.md)。
