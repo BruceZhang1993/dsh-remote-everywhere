@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import { parseNpmView } from './npm-json.mjs'
-import { releaseVersion, releasePackages, scopedPackageName, releaseRegistries, candidateDirectory, releaseTag, prerelease, compareVersions } from './release-config.mjs'
+import { releaseVersion, releasePackages, scopedPackageName, releaseRegistries, candidateDirectory, releaseTag, prerelease } from './release-config.mjs'
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const args = process.argv.slice(2)
@@ -107,24 +107,6 @@ if (!publish && !promote) {
         await delay(5000)
       }
       console.log(`verified ${artifact.name}@${releaseVersion}`)
-    }
-    if (target === 'npm' && prerelease) for (const artifact of artifacts) {
-      const tags = () => {
-        const result = spawnSync('npm', ['view', `${artifact.name}@${releaseVersion}`, 'dist-tags', '--json', ...registry], { encoding: 'utf8', timeout: 60000 })
-        if (result.error) throw result.error
-        if (result.status !== 0) throw new Error(`dist-tags lookup failed: ${artifact.name}`)
-        const value = parseNpmView(result.stdout)
-        if (!value || typeof value !== 'object') throw new Error(`invalid dist-tags: ${artifact.name}`)
-        return value
-      }
-      const latest = tags().latest
-      // First publication can create latest; also clear an older failed RC's tag.
-      // Keep an existing stable latest and never remove a newer version's tag.
-      if (!latest?.includes('-') || compareVersions(latest, releaseVersion) > 0) continue
-      const result = spawnSync('npm', ['dist-tag', 'rm', artifact.name, 'latest', ...registry], { stdio: 'inherit', timeout: 60000 })
-      if (result.error) throw result.error
-      if (result.status !== 0 || tags().latest) throw new Error(`prerelease latest cleanup failed: ${artifact.name}`)
-      console.log(`removed prerelease latest: ${artifact.name}@${latest}`)
     }
   }
 }

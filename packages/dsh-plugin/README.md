@@ -2,7 +2,7 @@
 
 让 DSH 实例互相查看和继续真实会话，使用 Noise 加密连接、二维码与人工 SAS 配对，并保留原生 GUI 审批。
 
-本版本面向宿主 **DSH Desktop 0.2.1-alpha.2**。宿主依赖须保持同版；已发布的 0.1.0 使用旧宿主 0.1.7-rc.2，不包含管理 UI。
+本版本面向宿主 **DSH Desktop 0.2.1-rc.2**。宿主依赖须保持同版；已发布的 0.1.0 使用旧宿主 0.1.7-rc.2，不包含管理 UI。
 
 启用后，从侧栏「远程设备」或「插件 → DSH Remote Everywhere」进入，完成双向人工配对、设备管理和公网隧道控制。主插件自动加载 UI 伴生包，原 Node SDK 的 `./client` 导出保持不变。版本发布后，在宿主「添加插件」选择 npm 官方源，安装 `@brucezhang1993/dsh-remote-everywhere@next`（预发布）或确切版本。使用与安装说明见附带的 `INSTALL.zh-CN.md` / `INSTALL.md` 或[仓库安装指引](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/install.md)。
 

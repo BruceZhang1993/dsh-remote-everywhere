@@ -2,13 +2,15 @@
 
 [English](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/install.en.md)
 
-本指引适用于带「远程设备」管理 UI 的版本，宿主基线为 **DSH Desktop 0.2.1-alpha.2**。插件和 Android App 分别安装：电脑从公共 npmjs 安装插件，手机从本仓库 GitHub Releases 下载 APK。GitHub Packages 的旧 `0.1.0` 不含此 UI，使用旧宿主，不能代替本指引中的版本。
+本指引适用于带「远程设备」管理 UI 的版本，宿主基线为 **DSH Desktop 0.2.1-rc.2**。插件和 Android App 分别安装：电脑从公共 npmjs 安装插件，手机从本仓库 GitHub Releases 下载 APK。GitHub Packages 的旧 `0.1.0` 不含此 UI，使用旧宿主，不能代替本指引中的版本。
+
+**版本对应：** 插件 `0.2.0-rc.3` 面向 DSH `0.2.1-alpha.2`；`0.2.0-rc.4` 面向 DSH `0.2.1-rc.2`。遇到旧版不兼容提示时，按下方步骤确认匹配版本已经发布后升级，保留 profile 的 `remote/` 身份和授权数据。
 
 先查看 [GitHub Releases](https://github.com/BruceZhang1993/dsh-remote-everywhere/releases) 和对应版本的发布说明。未出现目标版本/附件时，该版本尚不可下载安装；本地候选或源码版本号不代表正式发布。预发布显示为 **Pre-release**，不要只依赖 `/releases/latest`。
 
 ## 电脑：安装 DSH 插件
 
-1. 在桌面端「关于」确认版本为 **0.2.1-alpha.2**，切换到准备使用的 profile。先备份该 profile 的配置、package/lock 文件和 `remote/` 状态目录。
+1. 在桌面端「关于」确认版本为 **0.2.1-rc.2**，切换到准备使用的 profile。先备份该 profile 的配置、package/lock 文件和 `remote/` 状态目录。
 2. 打开 **插件 → 添加插件**，在「包名或地址」填写以下内容，registry 选择 **npm 官方源 `https://registry.npmjs.org`**：
 
    ```text
@@ -59,4 +61,4 @@ npm install --ignore-scripts --registry=https://registry.npmjs.org @brucezhang19
 ./node_modules/.bin/dsh-remote help
 ```
 
-通常 `latest` 用于已通过注册表验收并晋级的稳定版；`0.2.0-rc.3` 本次保留已有 `latest`，CLI 的 `latest` 也指向该 RC。六包统一安装请显式指定 `0.2.0-rc.3`，具体标签见[发布记录](release-0.2.0-rc.3.md)。旧 GitHub Packages 安装流程与凭据要求保留在[历史发布文档](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.md)。
+预发布只更新 `next`，保留已有 `latest`；不要依赖旧 `latest` 获得兼容当前宿主的版本。六包统一安装请显式指定 `0.2.0-rc.4`，具体状态见[发布记录](release-0.2.0-rc.4.md)。旧 GitHub Packages 安装流程与凭据要求保留在[历史发布文档](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.md)。

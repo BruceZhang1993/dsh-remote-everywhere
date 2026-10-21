@@ -6,12 +6,14 @@ import { spawn, execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import { localRequest } from '../packages/dsh-plugin/src/local.js'
+import { DeviceStore } from '../packages/dsh-plugin/src/store.js'
+import { pairDevice, RemoteClient } from '../packages/dsh-plugin/src/client.js'
 
 // Browser plugin not available in this session; use the installed Playwright runtime.
 const { chromium } = await import(process.env.DSH_PLAYWRIGHT ?? 'playwright')
 const modules = process.env.DSH_HOST_MODULE_ROOT
-if (!modules) throw new Error('set DSH_HOST_MODULE_ROOT to DSH Desktop 0.2.1-alpha.2 node_modules')
-assert.equal(JSON.parse(readFileSync(join(modules, '@deepseek-ai/dsh/package.json'))).version, '0.2.1-alpha.2')
+if (!modules) throw new Error('set DSH_HOST_MODULE_ROOT to DSH Desktop 0.2.1-rc.2 node_modules')
+assert.equal(JSON.parse(readFileSync(join(modules, '@deepseek-ai/dsh/package.json'))).version, '0.2.1-rc.2')
 const root = resolve(import.meta.dirname, '..')
 const directory = mkdtempSync(join(tmpdir(), 'dsh-ui-smoke-'))
 const children = []
@@ -214,10 +216,31 @@ try {
       const ready = (await management(pageB, 'status')).result.value
       assert.equal(ready.incoming.state, 'cancelled')
       assert.match(ready.endpoint, /^wss:\/\/[^/]+\.trycloudflare\.com\/remote\/ws$/)
+      await uiB.getByRole('tab', { name: '设备', exact: true }).click()
+      await uiB.getByRole('button', { name: '生成配对码', exact: true }).click()
+      await uiB.getByRole('img').waitFor()
+      const publicPair = (await management(pageB, 'status')).result.value.incoming
+      assert.equal(publicPair.qr.relay, ready.endpoint)
+      writeFileSync('/tmp/dsh-remote-ui-public-qr.png', Buffer.from(publicPair.image.split(',')[1], 'base64'))
+      await pageB.screenshot({ path: '/tmp/dsh-remote-ui-public.png' })
+      const controller = new DeviceStore(join(directory, 'public-controller'))
+      let client
+      try {
+        const peer = await pairDevice(controller, publicPair.qr, async ({ sas }) => {
+          const code = uiB.getByLabel('六位安全码', { exact: true })
+          await code.waitFor()
+          assert.equal(await code.textContent(), sas)
+          await uiB.getByRole('button', { name: '安全码一致，确认配对', exact: true }).click()
+          return true
+        }, 'Public QR smoke')
+        client = await new RemoteClient(controller, peer).connect()
+        assert.ok(Array.isArray((await client.request('session.list', {})).items))
+      } finally { await client?.close(); controller.close() }
       // New tunnel edges can reset TLS during propagation (spikes/tunnel/REPORT.md).
       // This negative route probe has no mutation; retries remain inside one 45-second budget.
       const { stdout } = await promisify(execFile)('curl', ['--silent', '--show-error', '--output', '/dev/null', '--write-out', '%{http_code}', '--retry', '7', '--retry-max-time', '40', '--retry-all-errors', '--max-time', '5', '--request', 'POST', '--data', '{}', new URL('/api/dsh-remote/manage', ready.endpoint.replace(/^wss:/, 'https:')).href], { timeout: 45000, maxBuffer: 4096 })
       assert.equal(stdout.trim(), '404')
+      await uiB.getByRole('tab', { name: '公网访问', exact: true }).click()
       await uiB.getByRole('button', { name: '停止公网访问', exact: true }).click()
       await uiB.getByText('未开启', { exact: true }).waitFor()
       assert.equal((await management(pageB, 'status')).result.value.deviceId, identity)
@@ -225,7 +248,7 @@ try {
   }
   const relevant = errors.filter(message => !/favicon|net::ERR_ABORTED|401 \(Unauthorized\)/.test(message))
   assert.deepEqual(relevant, [])
-  console.log(JSON.stringify({ passed: true, desktop, publicTunnel, pluginName, version: '0.2.1-alpha.2', screenshots: desktop ? ['/tmp/dsh-remote-ui-desktop.png'] : ['/tmp/dsh-remote-ui-pairing.png', '/tmp/dsh-remote-ui-devices.png', '/tmp/dsh-remote-ui-narrow.png'], consoleErrors: relevant.length }))
+  console.log(JSON.stringify({ passed: true, desktop, publicTunnel, pluginName, version: '0.2.1-rc.2', screenshots: desktop ? ['/tmp/dsh-remote-ui-desktop.png'] : ['/tmp/dsh-remote-ui-pairing.png', '/tmp/dsh-remote-ui-devices.png', '/tmp/dsh-remote-ui-narrow.png'], consoleErrors: relevant.length }))
 } catch (error) {
   for (const context of browser?.contexts() ?? []) for (const page of context.pages()) {
     console.error(JSON.stringify({ dialogs: await page.getByRole('dialog').allTextContents(), errors }))

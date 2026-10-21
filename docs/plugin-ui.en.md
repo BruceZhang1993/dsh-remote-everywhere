@@ -1,6 +1,6 @@
 # Remote management UI candidate
 
-This development candidate targets **DSH Desktop 0.2.1-alpha.2** only. Its local candidate version is **0.2.0-dev.0**; it has not been published. Published 0.1.0 packages do not include this UI. DSH 0.1.7-rc.2 is outside the UI compatibility baseline.
+This candidate targets **DSH Desktop 0.2.1-rc.2**, matching the local desktop installation. Its local candidate version is **0.2.0-rc.4** and has not been published. Published `0.2.0-rc.3` targets the older `0.2.1-alpha.2` baseline; `0.1.0` does not include this UI.
 
 Install all six matching candidate archives (protocol, core, tunnel, cli, ui and everywhere) with install scripts disabled into an isolated Desktop profile. Preserve the host bundles and add `@brucezhang1993/dsh-remote-everywhere` to `dsh.profile.bundles` for scoped candidates, or `dsh-remote-everywhere` for unscoped candidates. The main plugin brings in its companion UI; do not replace its Node SDK `./client` entry.
 

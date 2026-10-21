@@ -1,6 +1,6 @@
 # 插件 UI 首版：使用与验收
 
-本分支面向 **DSH Desktop 0.2.1-alpha.2**，对应本机 `/usr/lib/deepseek-harness-desktop`。包含 UI 的本地候选版本为 **0.2.0-dev.0**，尚未发布。已发布的 0.1.0 不含此界面；旧宿主 0.1.7-rc.2 不在本次兼容范围。
+当前候选面向 **DSH Desktop 0.2.1-rc.2**，对应本机 `/usr/lib/deepseek-harness-desktop`。本地候选版本为 **0.2.0-rc.4**，尚未发布。已发布的 `0.2.0-rc.3` 面向旧基线 `0.2.1-alpha.2`；`0.1.0` 不含此界面。
 
 ## 从哪里进入
 

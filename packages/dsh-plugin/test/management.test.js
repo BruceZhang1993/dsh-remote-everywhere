@@ -128,6 +128,33 @@ test('expiry and shutdown release pending confirmations; tunnel changes invalida
   assert.equal(b.runtime.store.devices.length, 0)
 })
 
+test('new pairing codes use the ready public endpoint and cannot reuse codes from an earlier tunnel state', async t => {
+  const [a] = await hosts(t)
+  await a.management.call('pair.begin')
+  const local = (await a.management.snapshot()).incoming
+  assert.equal(local.qr.relay, a.runtime.server.endpoint)
+  const tunnel = a.management.tunnel()
+  tunnel.url = 'https://pairing-test.trycloudflare.com'
+  tunnel.state = 'ready'
+  tunnel.emit('state', tunnel.state)
+  await a.management.call('pair.begin')
+  const publicState = await a.management.snapshot()
+  assert.equal(publicState.incoming.qr.relay, 'wss://pairing-test.trycloudflare.com/remote/ws')
+  assert.equal(publicState.incoming.qr.relay, publicState.tunnel.endpoint)
+  assert.notEqual(publicState.incoming.sid, local.sid)
+  assert.notEqual(publicState.incoming.image, local.image)
+  assert.throws(() => a.runtime.pairing.claim(local.sid), { code: 'unauthorized' })
+  tunnel.url = null
+  tunnel.state = 'stopped'
+  tunnel.emit('state', tunnel.state)
+  const stopped = await a.management.snapshot()
+  assert.equal(stopped.incoming.state, 'cancelled')
+  assert.equal(stopped.incoming.image, undefined)
+  assert.throws(() => a.runtime.pairing.claim(publicState.incoming.sid), { code: 'unauthorized' })
+  await a.management.call('pair.begin')
+  assert.equal((await a.management.snapshot()).incoming.qr.relay, a.runtime.server.endpoint)
+})
+
 test('management registers only an exact authenticated Connection route and rejects malformed envelopes', async t => {
   const [a] = await hosts(t)
   let route
