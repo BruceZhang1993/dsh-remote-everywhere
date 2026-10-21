@@ -50,7 +50,7 @@ if (!args.length) {
     const notesPath = join(root, '.cache/release-notes.md')
     const source = `https://github.com/${repository}/blob/${releaseTag}`
     const plugin = `@${repository.split('/')[0].toLowerCase()}/dsh-remote-everywhere@${releaseVersion}`
-    writeFileSync(notesPath, `## Install / 安装\n\n- DSH Desktop **0.2.1-alpha.2**: Plugins → Add plugin / 插件 → 添加插件; official npm registry: \`https://registry.npmjs.org\`; package: \`${plugin}\`.\n- Android **7.0+**: download \`${apk}\` and the other five assets below. In the download directory run \`sha256sum --check SHA256SUMS\` (macOS: \`shasum -a 256 --check SHA256SUMS\`).\n- [中文安装、配对与回滚](${source}/docs/install.md) · [English installation, pairing and rollback](${source}/docs/install.en.md).\n- The Android app is installed separately; no iOS IPA is distributed. / 手机 App 需单独安装，暂不提供 iOS IPA。\n\n`)
+    writeFileSync(notesPath, `## Install / 安装\n\n- DSH Desktop **0.2.1-rc.2**: Plugins → Add plugin / 插件 → 添加插件; official npm registry: \`https://registry.npmjs.org\`; package: \`${plugin}\`.\n- Android **7.0+**: download \`${apk}\` and the other five assets below. In the download directory run \`sha256sum --check SHA256SUMS\` (macOS: \`shasum -a 256 --check SHA256SUMS\`).\n- [中文安装、配对与回滚](${source}/docs/install.md) · [English installation, pairing and rollback](${source}/docs/install.en.md).\n- The Android app is installed separately; no iOS IPA is distributed. / 手机 App 需单独安装，暂不提供 iOS IPA。\n\n`)
     run('gh', ['release', 'create', releaseTag, '--repo', repository, '--verify-tag', '--draft', '--title', `DSH Remote ${releaseVersion}`, '--notes-file', notesPath, '--generate-notes'])
     release = lookup()
   }

@@ -70,7 +70,7 @@ if [[ "${TASK_REGISTRY:-0}" == 1 ]]; then
   if [[ "${TASK_NPM:-0}" == 1 ]]; then unset NODE_AUTH_TOKEN NPM_TOKEN NPM_BOOTSTRAP_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_ID_TOKEN_REQUEST_TOKEN; fi
   NPM_CONFIG_USERCONFIG="$TASK_CONSUMER/.npmrc" NPM_CONFIG_CACHE="$TASK_CONSUMER/npm-cache" \
     npm install --prefix "$TASK_CONSUMER" --registry=https://registry.npmjs.org --ignore-scripts --no-audit --no-fund \
-    "${TASK_ARCHIVES[@]}" @deepseek-ai/dsh@0.2.1-alpha.2
+    "${TASK_ARCHIVES[@]}" @deepseek-ai/dsh@0.2.1-rc.2
   unset NODE_AUTH_TOKEN
   node --input-type=module - "$TASK_CONSUMER" "$TASK_PACKAGES" <<'JS'
 import assert from 'node:assert/strict'
@@ -92,8 +92,29 @@ JS
 else
 npm install --prefix "$TASK_CONSUMER" --ignore-scripts --no-audit --no-fund \
   "${TASK_ARCHIVES[@]}" \
-  @deepseek-ai/dsh@0.2.1-alpha.2
+  @deepseek-ai/dsh@0.2.1-rc.2
 fi
+node --input-type=module - "$TASK_CONSUMER" "$TASK_PLUGIN_NAME" <<'JS'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+const [consumer, name] = process.argv.slice(2)
+const modules = join(consumer, 'node_modules')
+const { evaluatePluginCompatibility, getDshRuntimeVersion } = await import(pathToFileURL(join(modules, '@deepseek-ai/dsh-app-boot/lib/index.js')))
+const manifest = JSON.parse(readFileSync(join(modules, name, 'package.json')))
+assert.equal(evaluatePluginCompatibility(manifest), undefined, 'packed plugin must pass the real DSH compatibility gate without exemptions')
+const peers = Object.entries(manifest.peerDependencies).filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
+for (const [name, version] of peers) {
+  assert.equal(version, getDshRuntimeVersion())
+  assert.equal(JSON.parse(readFileSync(join(modules, name, 'package.json'))).version, version)
+}
+const legacy = { ...manifest, peerDependencies: Object.fromEntries(peers.map(([name]) => [name, '0.2.1-alpha.2'])) }
+const issue = evaluatePluginCompatibility(legacy)
+assert.equal(issue.exempted, false, 'legacy alpha peers must reproduce the original rejection')
+assert.equal(Object.keys(issue.requirements).length, peers.length)
+console.log('packed plugin passes the real DSH compatibility gate; legacy alpha peers are rejected')
+JS
 TASK_CLI="$TASK_CONSUMER/node_modules/$TASK_CLI_NAME/src/index.js"
 node "$TASK_CLI" keygen --out "$TASK_CONSUMER/host.key" > "$TASK_CONSUMER/host-public.json"
 node "$TASK_CLI" keygen --out "$TASK_CONSUMER/client.key" > "$TASK_CONSUMER/client-public.json"

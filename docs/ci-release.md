@@ -1,6 +1,6 @@
 # CI 与版本发布
 
-本流程新增公共 npmjs registry 发布，保留手动 GitHub Packages 发布。移动端首版通过 GitHub Release 发布 **Android 正式签名 APK**；iOS 保留手动构建入口，暂不发布 IPA。DSH 安装验收固定使用桌面对应的 `@deepseek-ai/dsh@0.2.1-alpha.2`。
+本流程新增公共 npmjs registry 发布，保留手动 GitHub Packages 发布。移动端首版通过 GitHub Release 发布 **Android 正式签名 APK**；iOS 保留手动构建入口，暂不发布 IPA。DSH 安装验收固定使用桌面对应的 `@deepseek-ai/dsh@0.2.1-rc.2`。
 
 当前发布前配置状态和待完成项见 [完整链路检查](release-preflight.md)，用户安装见 [中英文安装指引](install.md)。
 
@@ -115,7 +115,7 @@ GitHub Release 包含 `dsh-remote-android-VERSION.apk`、`release-manifest.json`
 
 - 优先使用 GitHub Actions 的 **Re-run failed jobs**，复用原运行通过验证的 tarball/APK artifacts，避免无关重构建造成字节变化。
 - npm 已存在的版本只有完整性与 DSH 元数据完全一致才跳过。兼容 npm 12 的单元素查询数组与打包 JSON；依赖顺序上传后逐包等待可见，每包最多 6 分钟，仅重试处理中的 404。认证、网络、哈希和 DSH 元数据错误仍立即失败。部分成功后保留现场，重跑原 tag，不覆盖版本。
-- 首次公共 npm 发布即使指定 `next`，注册表也可能生成预发布 `latest`；本流程逐包核验后清理不晚于本次版本的预发布 `latest`，保留稳定或更新版本标签。多包发布、清理和晋级均不具备事务性，完成后必须读回标签。
+- 预发布只写入 `next`，保留已有 `latest`；首次公共 npm 发布即使指定 `next`，注册表也可能自动生成 `latest`，本流程不会删除它。多包发布和稳定版晋级不具备事务性，完成后必须读回标签；统一安装应指定确切版本。
 - npm 验收失败时不会更新 latest，也不会公开 GitHub Release；已写入的 next 包仍可能存在。预发布分支不会触碰 latest。
 - GitHub Release 重跑优先复用校验一致的草稿和附件；不覆盖异内容附件。已公开且附件一致则只验证；缺失或不一致停止，不修改既有发布。
 - 若重新构建 APK 的字节发生变化而远端已有部分草稿附件，不强行覆盖。应核对原运行 artifacts，在保留原产物的前提下恢复；发布前可由维护者审查并删除未公开草稿后重跑。已公开版本始终不可替换。

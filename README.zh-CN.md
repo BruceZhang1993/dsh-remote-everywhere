@@ -3,7 +3,7 @@
 [![CI](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/ci.yml)
 [![Fuzz](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/fuzz.yml/badge.svg?branch=master)](https://github.com/BruceZhang1993/dsh-remote-everywhere/actions/workflows/fuzz.yml)
 [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![DSH Desktop 0.2.1-alpha.2](https://img.shields.io/badge/DSH_Desktop-0.2.1--alpha.2-blue)](docs/install.md)
+[![DSH Desktop 0.2.1-rc.2](https://img.shields.io/badge/DSH_Desktop-0.2.1--rc.2-blue)](docs/install.md)
 
 [English](README.md) | 中文
 
@@ -17,7 +17,7 @@
 
 ## 安装
 
-请使用 **DSH Desktop 0.2.1-alpha.2**。版本发布后，在 **插件 → 添加插件** 选择 npm 官方源，填写 `@brucezhang1993/dsh-remote-everywhere@next` 安装预发布版；入口为侧栏 **远程设备**。Android 需单独从 [Releases 列表](https://github.com/BruceZhang1993/dsh-remote-everywhere/releases) 下载 APK，注意查看 Pre-release；iOS 暂无 IPA 分发。
+请使用 **DSH Desktop 0.2.1-rc.2**。版本发布后，在 **插件 → 添加插件** 选择 npm 官方源，填写 `@brucezhang1993/dsh-remote-everywhere@next` 安装预发布版；入口为侧栏 **远程设备**。Android 需单独从 [Releases 列表](https://github.com/BruceZhang1993/dsh-remote-everywhere/releases) 下载 APK，注意查看 Pre-release；iOS 暂无 IPA 分发。
 
 [完整安装指引](docs/install.md) 包含固定版本、稳定版、APK 校验、首次配对与回滚。目标版本或附件尚未出现时请等待发布。历史 GitHub Packages `0.1.0` 使用旧宿主且不含管理 UI。CI badge 反映远端 `master` 的检查结果，不代表包已发布或真机验收通过。
 
@@ -35,7 +35,7 @@ DSH 在本地和自带 Web GUI 中很好用，但缺少以下能力：
 
 npmjs 自动发布、版本 PR、Android 正式签名 APK 与 GitHub Release 配置见 [CI 与版本发布](docs/ci-release.md)。
 
-管理 UI 面向 **DSH Desktop 0.2.1-alpha.2**，入口为侧栏「远程设备」或插件详情页。见 [UI 功能与本地验收说明](docs/plugin-ui.md) 和 [实施规划](docs/plugin-ui-plan.md)。已发布版本以安装指引为准；历史 `0.1.0` 不含此界面。
+管理 UI 面向 **DSH Desktop 0.2.1-rc.2**，入口为侧栏「远程设备」或插件详情页。见 [UI 功能与本地验收说明](docs/plugin-ui.md) 和 [实施规划](docs/plugin-ui-plan.md)。已发布版本以安装指引为准；历史 `0.1.0` 不含此界面。
 
 历史 GitHub Packages 流程与 `0.1.0` 记录见 [历史发布说明](docs/release.md)，当前发布前状态见 [链路检查记录](docs/release-preflight.md)。发布状态及验收范围与 CI badge 分别记录。安全披露策略见 [SECURITY.md](SECURITY.md)。
 

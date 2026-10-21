@@ -57,7 +57,7 @@ function fixture(target = 'github-packages', stable = false) {
     cpSync(join(candidate, originalFile), join(destination, artifact.file))
     integrities[artifact.name] = `sha512-${createHash('sha512').update(readFileSync(join(destination, artifact.file))).digest('base64')}`
   }
-  const registry = { integrities, existing: [], latest: {}, error: null, failPublish: null, failPromote: null, wrongLatest: false, metadataMismatch: false, arrayView: true, visibilityDelay: {}, autoLatest: false, failRemove: false }
+  const registry = { integrities, existing: [], latest: {}, error: null, failPublish: null, failPromote: null, wrongLatest: false, metadataMismatch: false, arrayView: true, visibilityDelay: {}, autoLatest: false }
   const state = join(directory, 'registry.json'), calls = join(directory, 'calls.jsonl')
   writeFileSync(join(directory, 'bin/git'), `#!/usr/bin/env node
 if (process.argv[2] === 'rev-parse') console.log(process.env.GITHUB_SHA);
@@ -89,9 +89,6 @@ if (args[0] === 'view') {
   const name = args[2].endsWith('@${version}') ? args[2].slice(0, -'@${version}'.length) : args[2];
   if (state.failPromote === name) process.exit(1);
   state.latest[name] = '${version}'; fs.writeFileSync(process.env.TEST_REGISTRY, JSON.stringify(state));
-} else if (args[0] === 'dist-tag' && args[1] === 'rm') {
-  if (state.failRemove) process.exit(1);
-  delete state.latest[args[2]]; fs.writeFileSync(process.env.TEST_REGISTRY, JSON.stringify(state));
 } else process.exit(2);
 `, { mode: 0o700 })
   const manifestPath = join(destination, 'manifest.json')
@@ -167,7 +164,7 @@ scenario('processing E404 waits for visibility without uploading a package twice
   assert.match(result.stdout, /waiting for registry visibility/)
   assert.equal(context.published().length, context.manifest.artifacts.length)
 }, 'npm')
-scenario('prerelease publication clears automatic and older RC latest tags but preserves stable', context => {
+scenario('prerelease publication preserves all existing latest tags', context => {
   context.registry.existing = context.manifest.artifacts.map(a => a.name)
   context.registry.latest[context.manifest.artifacts[0].name] = context.version
   context.registry.latest[context.manifest.artifacts[1].name] = '0.1.0-rc.1'
@@ -175,25 +172,19 @@ scenario('prerelease publication clears automatic and older RC latest tags but p
   context.registry.latest[context.manifest.artifacts[3].name] = '99.0.0-rc.1'
   const result = context.run()
   assert.equal(result.status, 0, result.stderr)
-  assert.deepEqual(context.promoted().map(a => a.slice(1, 4)), context.manifest.artifacts.slice(0, 2).map(a => ['rm', a.name, 'latest']))
+  assert.equal(context.promoted().length, 0)
   const state = JSON.parse(readFileSync(join(context.directory, 'registry.json')))
-  assert.equal(state.latest[context.manifest.artifacts[2].name], '0.1.0')
-  assert.equal(state.latest[context.manifest.artifacts[3].name], '99.0.0-rc.1')
+  assert.deepEqual(state.latest, context.registry.latest)
 }, 'npm')
-scenario('first-publish automatic latest is removed and cleanup failure stops acceptance', context => {
-  context.registry.autoLatest = true
-  context.registry.failRemove = true
-  const result = context.run()
-  assert.match(result.stderr, /prerelease latest cleanup failed/)
-  assert.equal(context.promoted().length, 1)
-}, 'npm')
-scenario('all first-publish automatic latest tags are removed after matching tarball verification', context => {
+scenario('first publication uses next and preserves registry-generated latest after verification', context => {
   context.registry.autoLatest = true
   const result = context.run()
   assert.equal(result.status, 0, result.stderr)
-  assert.equal(context.promoted().length, context.manifest.artifacts.length)
+  assert.equal(context.promoted().length, 0)
+  assert.equal(context.published().length, context.manifest.artifacts.length)
+  assert.ok(context.published().every(args => args.includes('--tag=next')))
   const state = JSON.parse(readFileSync(join(context.directory, 'registry.json')))
-  assert.deepEqual(state.latest, {})
+  assert.deepEqual(state.latest, Object.fromEntries(context.manifest.artifacts.map(a => [a.name, context.version])))
 }, 'npm')
 scenario('partial publication failure stops dependent packages', context => {
   context.registry.failPublish = context.manifest.artifacts[2].name
