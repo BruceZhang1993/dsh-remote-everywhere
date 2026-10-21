@@ -4,7 +4,7 @@
 
 This guide covers releases with the **Remote devices** management UI, targeting **DSH Desktop 0.2.1-rc.2**. Install the desktop plugin from public npmjs and the separate Android app from this repository's GitHub Releases. The historical GitHub Packages `0.1.0` targets an older host and does not include this UI.
 
-**Version mapping:** Plugin `0.2.0-rc.3` targets DSH `0.2.1-alpha.2`. Plugin `0.2.0-rc.4` targets DSH `0.2.1-rc.2`. When an older plugin is rejected, confirm the matching release is available using the steps below before upgrading, and preserve the profile's `remote/` identity and authorization data.
+**Version mapping:** Plugin `0.2.0-rc.3` targets DSH `0.2.1-alpha.2`. Plugins `0.2.0-rc.4` / `0.2.0-rc.5` target DSH `0.2.1-rc.2`. The rc.5 large-list connection fix requires updating both the desktop plugin and Android APK. When an older plugin is rejected, confirm the matching release is available using the steps below before upgrading, and preserve the profile's `remote/` identity and authorization data.
 
 Check the [Releases list](https://github.com/BruceZhang1993/dsh-remote-everywhere/releases) and the selected release notes first. If the version or assets are absent, they are not available for installation yet. Source versions and local candidates do not prove publication. Prereleases appear as **Pre-release**; `/releases/latest` may omit them.
 
@@ -61,4 +61,4 @@ npm install --ignore-scripts --registry=https://registry.npmjs.org @brucezhang19
 ./node_modules/.bin/dsh-remote help
 ```
 
-Prereleases update only `next` and preserve existing `latest` tags. Do not rely on the old `latest` to obtain compatibility with the current host. Pin `0.2.0-rc.4` when installing all six packages together; see the [release record](release-0.2.0-rc.4.md) for the actual status. The authenticated GitHub Packages procedure remains in the [historical release guide](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.en.md).
+Prereleases update only `next` and preserve existing `latest` tags. Do not rely on the old `latest` to obtain compatibility with the current host. Pin `0.2.0-rc.5` when installing all six packages together; see the [release notes](release-0.2.0-rc.5.md) for the actual status. The authenticated GitHub Packages procedure remains in the [historical release guide](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.en.md).

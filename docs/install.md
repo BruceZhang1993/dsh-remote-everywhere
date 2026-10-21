@@ -4,7 +4,7 @@
 
 本指引适用于带「远程设备」管理 UI 的版本，宿主基线为 **DSH Desktop 0.2.1-rc.2**。插件和 Android App 分别安装：电脑从公共 npmjs 安装插件，手机从本仓库 GitHub Releases 下载 APK。GitHub Packages 的旧 `0.1.0` 不含此 UI，使用旧宿主，不能代替本指引中的版本。
 
-**版本对应：** 插件 `0.2.0-rc.3` 面向 DSH `0.2.1-alpha.2`；`0.2.0-rc.4` 面向 DSH `0.2.1-rc.2`。遇到旧版不兼容提示时，按下方步骤确认匹配版本已经发布后升级，保留 profile 的 `remote/` 身份和授权数据。
+**版本对应：** 插件 `0.2.0-rc.3` 面向 DSH `0.2.1-alpha.2`；`0.2.0-rc.4` / `0.2.0-rc.5` 面向 DSH `0.2.1-rc.2`。rc.5 修复大列表连接错误，需同时更新电脑插件和手机 APK。遇到旧版不兼容提示时，按下方步骤确认匹配版本已经发布后升级，保留 profile 的 `remote/` 身份和授权数据。
 
 先查看 [GitHub Releases](https://github.com/BruceZhang1993/dsh-remote-everywhere/releases) 和对应版本的发布说明。未出现目标版本/附件时，该版本尚不可下载安装；本地候选或源码版本号不代表正式发布。预发布显示为 **Pre-release**，不要只依赖 `/releases/latest`。
 
@@ -61,4 +61,4 @@ npm install --ignore-scripts --registry=https://registry.npmjs.org @brucezhang19
 ./node_modules/.bin/dsh-remote help
 ```
 
-预发布只更新 `next`，保留已有 `latest`；不要依赖旧 `latest` 获得兼容当前宿主的版本。六包统一安装请显式指定 `0.2.0-rc.4`，具体状态见[发布记录](release-0.2.0-rc.4.md)。旧 GitHub Packages 安装流程与凭据要求保留在[历史发布文档](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.md)。
+预发布只更新 `next`，保留已有 `latest`；不要依赖旧 `latest` 获得兼容当前宿主的版本。六包统一安装请显式指定 `0.2.0-rc.5`，具体状态见[发布说明](release-0.2.0-rc.5.md)。旧 GitHub Packages 安装流程与凭据要求保留在[历史发布文档](https://github.com/BruceZhang1993/dsh-remote-everywhere/blob/master/docs/release.md)。

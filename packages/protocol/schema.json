@@ -130,6 +130,18 @@
       "properties": {},
       "required": []
     },
+    "SessionListParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "streamId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      },
+      "required": []
+    },
     "SessionIdentityParams": {
       "type": "object",
       "additionalProperties": false,
@@ -148,6 +160,11 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "streamId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
         "query": {
           "type": "string",
           "minLength": 1,

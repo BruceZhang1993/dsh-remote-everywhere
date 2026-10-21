@@ -29,6 +29,12 @@ export class HostStreams {
   }
   async run(params, method, signal, source) {
     const { streamId, sinceSeq, ...request } = params
+    if (method === 'session.list' || method === 'session.search') {
+      const value = await this.controller[method === 'session.list' ? 'list' : 'search'](request, signal)
+      if (signal.aborted) throw new ProtocolError('cancelled', 'listing cancelled')
+      await sendValue(this.connection, streamId, 'session.frame', value)
+      return
+    }
     if (source) {
       for await (const value of source(signal)) await sendValue(this.connection, streamId, method === 'terminal.exec' ? 'terminal.output' : 'files.chunk', value)
       return

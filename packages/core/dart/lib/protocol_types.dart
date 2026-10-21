@@ -43,6 +43,13 @@ class EmptyParams {
   Map<String, Object?> toJson() => Map.of(values);
 }
 
+class SessionListParams {
+  const SessionListParams(this.values);
+  final Map<String, Object?> values;
+  int? get streamId => values['streamId'] as int?;
+  Map<String, Object?> toJson() => Map.of(values);
+}
+
 class SessionIdentityParams {
   const SessionIdentityParams(this.values);
   final Map<String, Object?> values;
@@ -53,6 +60,7 @@ class SessionIdentityParams {
 class SessionSearchParams {
   const SessionSearchParams(this.values);
   final Map<String, Object?> values;
+  int? get streamId => values['streamId'] as int?;
   String get query => values['query'] as String;
   Map<String, Object?> toJson() => Map.of(values);
 }

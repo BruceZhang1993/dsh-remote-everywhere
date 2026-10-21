@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { KINDS, encodeHeader, decodeHeader, encodePayload, decodePayload, assertValue } from '../src/index.js'
+import { KINDS, encodeHeader, decodeHeader, encodePayload, decodePayload, assertValue, assertMethod } from '../src/index.js'
 
 test('DR header uses network byte order and preserves the v1 safe integer ceiling', () => {
   const header = encodeHeader({ kind: KINDS.EVT, streamId: 0x12345678, seq: Number.MAX_SAFE_INTEGER })
@@ -27,4 +27,17 @@ test('schema rejects malformed control payloads, invalid UTF-8 and oversized val
 test('frozen frame vector headers and plaintext match protocol encoding', () => {
   const vectors = JSON.parse(readFileSync(new URL('../vectors/dr-v1.json', import.meta.url)))
   for (const frame of vectors.frames) assert.equal(encodeHeader(frame).toString('hex'), frame.header)
+})
+
+test('listing stream ids are optional, bounded and do not relax other method parameters', () => {
+  for (const params of [{}, { streamId: 1 }, { streamId: 0xffffffff }]) assertMethod('session.list', params)
+  for (const streamId of [0, -1, 1.5, 0x100000000, '1']) {
+    assert.throws(() => assertMethod('session.list', { streamId }))
+    assert.throws(() => assertMethod('session.search', { streamId, query: 'x' }))
+  }
+  assertMethod('session.search', { streamId: 1, query: '中文' })
+  assertMethod('session.search', { query: '中文' })
+  assert.throws(() => assertMethod('session.search', { streamId: 1 }))
+  assert.throws(() => assertMethod('session.list', { query: 'x' }))
+  assert.throws(() => assertMethod('workspace.list', { streamId: 1 }))
 })

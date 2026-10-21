@@ -345,8 +345,8 @@ M1 尚未实现这些方法；M2 的 `pair.confirm` 只允许在本机已开启�
 
 | 方法 | 参数 | 返回 |
 |---|---|---|
-| `session.list` | `{}` | `{items: SessionSummary[]}` |
-| `session.search` | `{query}` | `{items: SessionSummary[]}` |
+| `session.list` | `{streamId?}` | 无 `streamId` 时返回 `{items: SessionSummary[]}`；有 `streamId` 时返回 `{streamId}`，结果通过分片流发送 |
+| `session.search` | `{query, streamId?}` | 同 `session.list` |
 | `session.create` | `{workspaceId?, cwd?, sessionId?, agentPreset?}` | `{sessionId, agentPreset?}` |
 | `session.fork` | `{sessionId, atSeq?}` | `{sessionId}` |
 | `session.rename` | `{sessionId, title}` | `{title, seq}` |
@@ -355,6 +355,10 @@ M1 尚未实现这些方法；M2 的 `pair.confirm` 只允许在本机已开启�
 | `session.queue.update` | `{sessionId, itemId, action: {kind: 'steer'\|'edit'\|'remove', content?}}` | `{accepted: true}` |
 
 `PromptContentPart`：`{type:'text', text}` \| `{type:'image', …}` \| `{type:'file', receiptId}`。
+
+列表和搜索的分片模式同时要求 `session` 与 `stream` 授权，使用现有 SDATA + `session.frame` 提交标记，发送一个完整 `{items}` 值后 SEND 结束；保持单值 4 MiB、单片 32 KiB 上限。手机端优先使用分片模式；旧宿主拒绝 `streamId` 时回退普通 RPC。超过单帧预算的列表需要宿主和手机端同时升级。
+
+跨语言回归：安装工作区 pnpm 依赖后，在 `apps/mobile` 下显式运行 `flutter test test/listing_smoke.dart`（Linux 需使用 `tools/run-limited.sh` 包裹完整命令）。此测试连接临时 Node 宿主，覆盖大列表/搜索、旧宿主回退及仅会话权限；普通 Flutter 测试不依赖 Node。
 
 ### 6.3 流
 

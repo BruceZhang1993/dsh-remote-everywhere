@@ -38,7 +38,7 @@ const methodSchemas = {
   'changes.summary': 'ChangesSummaryParams', 'changes.diff': 'ChangesDiffParams',
   'subagent.list': 'SessionIdentityParams', 'subagent.prompt': 'SubagentPromptParams', 'subagent.cancel': 'SubagentIdentityParams',
   'session.upload.begin': 'UploadBeginParams', 'session.upload.chunk': 'UploadChunkParams', 'session.upload.finish': 'UploadFinishParams',
-  'session.list': 'EmptyParams', 'session.search': 'SessionSearchParams', 'session.create': 'SessionCreateParams',
+  'session.list': 'SessionListParams', 'session.search': 'SessionSearchParams', 'session.create': 'SessionCreateParams',
   'session.fork': 'SessionForkParams', 'session.rename': 'SessionRenameParams', 'session.prompt': 'SessionPromptParams',
   'session.cancel': 'SessionIdentityParams', 'session.queue.update': 'SessionQueueParams', 'session.attachment': 'SessionAttachmentParams', 'session.projections': 'SessionIdentityParams',
   'stream.open': 'SessionStreamParams', 'history.page': 'HistoryPageParams', 'stream.close': 'StreamIdentityParams', 'control.subscribe': 'StreamIdentityParams',

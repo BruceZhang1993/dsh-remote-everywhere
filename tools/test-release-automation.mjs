@@ -25,6 +25,11 @@ const file = process.env.TEST_GH_STATE, state = JSON.parse(fs.readFileSync(file)
 state.calls.push(args); fs.writeFileSync(file, JSON.stringify(state));
 if (args[0] === 'api') {
   if (state.error) { console.error(state.error); process.exit(1); }
+  if (args[1].includes('/releases?')) {
+    console.log(JSON.stringify(state.fullPages ? Array(100).fill({tag_name:'other'}) : state.release ? [state.release] : []));
+    process.exit(0);
+  }
+  if (state.tagLookup404) { console.error('gh: Not Found (HTTP 404)'); process.exit(1); }
   if (!state.release) { console.error('gh: Not Found (HTTP 404)'); process.exit(1); }
   console.log(JSON.stringify(state.release));
 } else if (args[0] === 'workflow') {
@@ -134,6 +139,24 @@ test('GitHub draft assets are verified before publish and published releases are
   assert.ok(edit > lastUpload)
   result = c.run('github-release', ['--publish']); assert.equal(result.status, 0, result.stderr)
   state = c.read(); assert.equal(state.calls.filter(a => a[1] === 'upload').length, 6); assert.equal(state.calls.filter(a => a[1] === 'edit').length, 1)
+}))
+test('GitHub drafts absent from tag lookup are found in the authenticated release list', () => fixture(c => {
+  c.assets(); c.state.tagLookup404 = true; c.save()
+  const result = c.run('github-release', ['--publish']); assert.equal(result.status, 0, result.stderr)
+  const state = c.read()
+  assert.equal(state.release.draft, false); assert.equal(state.release.assets.length, 6)
+  assert.equal(state.calls.filter(a => a[1] === 'create').length, 1)
+  assert.ok(state.calls.some(a => a[0] === 'api' && a[1].includes('/releases?')))
+}))
+test('GitHub draft recovery does not create a duplicate release and bounds pagination', () => fixture(c => {
+  c.assets(); c.state.tagLookup404 = true
+  c.state.release = { tag_name: `v${releaseVersion}`, draft: true, assets: [] }; c.save()
+  assert.equal(c.run('github-release', ['--publish']).status, 0)
+  assert.equal(c.read().calls.filter(a => a[1] === 'create').length, 0)
+  c.state.release = null; c.state.fullPages = true; c.state.calls = []; c.save()
+  assert.match(c.run('github-release', ['--publish']).stderr, /lookup budget exceeded/)
+  assert.equal(c.read().calls.filter(a => a[0] === 'api' && a[1].includes('/releases?')).length, 10)
+  assert.equal(c.read().calls.filter(a => a[1] === 'create').length, 0)
 }))
 test('partial GitHub draft upload failure can resume without overwriting assets', () => fixture(c => {
   c.assets(); c.state.failUpload = 'release-manifest.json'; c.save()

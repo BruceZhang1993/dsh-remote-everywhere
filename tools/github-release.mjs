@@ -42,7 +42,16 @@ if (!args.length) {
     const result = spawnSync('gh', ['api', endpoint], { encoding: 'utf8', timeout: 60000 })
     if (result.error) throw result.error
     if (result.status === 0) return JSON.parse(result.stdout)
-    if (/\(HTTP 404\)/.test(result.stderr)) return null
+    if (/\(HTTP 404\)/.test(result.stderr)) {
+      // The tag endpoint can omit drafts; the authenticated list includes them.
+      for (let page = 1; page <= 10; page++) {
+        const releases = JSON.parse(run('gh', ['api', `repos/${repository}/releases?per_page=100&page=${page}`]))
+        const draft = releases.find(value => value.tag_name === releaseTag)
+        if (draft) return draft
+        if (releases.length < 100) return null
+      }
+      throw new Error('GitHub release lookup budget exceeded')
+    }
     throw new Error(`GitHub release lookup failed: ${result.stderr}`)
   }
   let release = lookup()
@@ -53,6 +62,7 @@ if (!args.length) {
     writeFileSync(notesPath, `## Install / 安装\n\n- DSH Desktop **0.2.1-rc.2**: Plugins → Add plugin / 插件 → 添加插件; official npm registry: \`https://registry.npmjs.org\`; package: \`${plugin}\`.\n- Android **7.0+**: download \`${apk}\` and the other five assets below. In the download directory run \`sha256sum --check SHA256SUMS\` (macOS: \`shasum -a 256 --check SHA256SUMS\`).\n- [中文安装、配对与回滚](${source}/docs/install.md) · [English installation, pairing and rollback](${source}/docs/install.en.md).\n- The Android app is installed separately; no iOS IPA is distributed. / 手机 App 需单独安装，暂不提供 iOS IPA。\n\n`)
     run('gh', ['release', 'create', releaseTag, '--repo', repository, '--verify-tag', '--draft', '--title', `DSH Remote ${releaseVersion}`, '--notes-file', notesPath, '--generate-notes'])
     release = lookup()
+    if (!release) throw new Error('created GitHub draft is not visible; inspect it before retrying')
   }
   function verifyAssets(value, complete) {
     if (!value || value.tag_name !== releaseTag) throw new Error('GitHub release tag mismatch')
