@@ -618,13 +618,41 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> refresh({String? query}) async {
     final connection = _requireConnection(), generation = _generation;
-    final value = await _ownedRequest(
-      connection,
-      generation,
-      null,
-      query == null || query.isEmpty ? 'session.list' : 'session.search',
-      query == null || query.isEmpty ? {} : {'query': query},
-    );
+    final method = query == null || query.isEmpty
+        ? 'session.list'
+        : 'session.search';
+    final params = query == null || query.isEmpty
+        ? <String, dynamic>{}
+        : <String, dynamic>{'query': query};
+    dynamic value;
+    Stream<Map<String, dynamic>>? source;
+    final cancellation = RemoteCancellation();
+    try {
+      if (has('stream')) {
+        try {
+          source = await connection.open(
+            method,
+            params,
+            cancellation: cancellation,
+          );
+        } on RemoteException catch (failure) {
+          // Older hosts only accept these methods as a single RPC response.
+          if (!{'invalid-argument', 'unsupported'}.contains(failure.code)) {
+            rethrow;
+          }
+        }
+      }
+      value = source == null
+          ? await _ownedRequest(connection, generation, null, method, params)
+          : await source.single.timeout(
+              connection.requestTimeout,
+              onTimeout: () =>
+                  throw const RemoteException('timeout', '读取会话列表超时'),
+            );
+      _checkOwner(connection, generation);
+    } finally {
+      cancellation.cancel();
+    }
     final rows = (value['items'] as List)
         .map((item) => Map<String, dynamic>.from(item as Map))
         .toList();

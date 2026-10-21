@@ -107,6 +107,10 @@ export class RemoteRuntime extends EventEmitter {
     })
     for (const [suffix, method] of Object.entries(SESSION_METHODS)) {
       register(`session.${suffix}`, 'session', async (params, { signal }) => {
+        if ((suffix === 'list' || suffix === 'search') && params.streamId !== undefined) {
+          if (!connection.negotiatedCaps.has('stream') || !this.store.find(connection.peerPublicKey)?.caps.includes('stream')) throw new ProtocolError('unauthorized', 'stream capability not granted')
+          return streams.open(params, `session.${suffix}`)
+        }
         const previouslyTracked = this.remotelyDriven.has(params.sessionId)
         if (suffix === 'prompt') {
           if (this.remotelyDriven.size >= 4096 && !this.remotelyDriven.has(params.sessionId)) throw new ProtocolError('busy', 'remote session tracking full')
