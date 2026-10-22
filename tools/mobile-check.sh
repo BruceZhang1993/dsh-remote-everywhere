@@ -35,9 +35,9 @@ fi
 "$mobile_flutter" analyze
 "$mobile_flutter" test
 if [[ "$mobile_target" == android ]]; then
-  "$mobile_flutter" build apk --release
+  bash "$mobile_root/tools/mobile-release.sh" --inside-scope
   mkdir -p "$mobile_root/.cache/mobile"
-  cp build/app/outputs/flutter-apk/app-release.apk "$mobile_root/.cache/mobile/dsh-remote-release.apk"
+  cp "$mobile_root"/.cache/mobile-release/*.apk "$mobile_root/.cache/mobile/dsh-remote-release.apk"
 elif [[ "$mobile_target" == ios ]]; then
   "$mobile_flutter" build ios --release --no-codesign
   mkdir -p "$mobile_root/.cache/mobile"

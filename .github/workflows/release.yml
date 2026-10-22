@@ -34,6 +34,7 @@ jobs:
   verify:
     needs: tag
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
   android:
     needs: verify
     uses: ./.github/workflows/mobile-release.yml

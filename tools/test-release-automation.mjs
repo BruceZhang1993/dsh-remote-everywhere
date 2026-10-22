@@ -76,7 +76,7 @@ fs.writeFileSync(file, JSON.stringify(state));
     for (const name of ['LICENSE.txt', 'ANDROID-NOTICES.md', 'ANDROID-LICENSE-REVIEW.md']) writeFileSync(join(output, name), name)
     sums()
   }
-  try { body({ directory, output, run, sha, git, mobile, assets, sums, metadata, state,
+  try { body({ directory, output, run, sha, git, mobile, assets, sums, metadata, state, command,
     save: () => writeFileSync(stateFile, JSON.stringify(state)), read: () => JSON.parse(readFileSync(stateFile)) }) }
   finally { rmSync(directory, { recursive: true, force: true }) }
 }
@@ -109,6 +109,53 @@ test('Android certificate, debug key, signature scheme and package version are v
     assert.match(c.run('mobile-manifest', [], { ANDROID_SIGNING_CERT_SHA256: 'a'.repeat(64) }).stderr, pattern)
   }
   c.mobile(); assert.equal(c.run('mobile-manifest', [], { ANDROID_SIGNING_CERT_SHA256: 'AA:'.repeat(31) + 'AA' }).status, 0)
+}))
+function signingBuild(c, overrides = {}) {
+  cpSync(join(root, 'tools/mobile-release.sh'), join(c.directory, 'tools/mobile-release.sh'))
+  mkdirSync(join(c.directory, '.signing/android'), { recursive: true })
+  writeFileSync(join(c.directory, '.signing/android/key.properties'), `certificateSha256=${'a'.repeat(64)}\n`)
+  mkdirSync(join(c.directory, 'docs'), { recursive: true })
+  for (const name of ['android-notices.md', 'android-license-review.md']) writeFileSync(join(c.directory, 'docs', name), 'fixture')
+  writeFileSync(join(c.directory, 'LICENSE'), 'fixture')
+  writeFileSync(join(c.directory, 'bin/flutter'), `#!/usr/bin/env bash
+set -euo pipefail
+case "$1" in
+  --version) echo 'Flutter 3.47.7 / Dart 3.13.5 ' ;;
+  pub) ;;
+  build) mkdir -p build/app/outputs/flutter-apk; printf 'synthetic APK bytes' > build/app/outputs/flutter-apk/app-release.apk ;;
+  *) exit 2 ;;
+esac
+`, { mode: 0o700 })
+  writeFileSync(join(c.directory, 'bin/zipalign'), '#!/usr/bin/env bash\nexit 0\n', { mode: 0o700 })
+  writeFileSync(join(c.directory, 'bin/apksigner'), `#!/usr/bin/env bash
+printf '%s\\n' 'Signer #1 certificate DN: CN=Fixture Distribution' 'Signer #1 certificate SHA-256 digest: ${'a'.repeat(64)}' 'Verified using v2 scheme (APK Signature Scheme v2): true'
+`, { mode: 0o700 })
+  writeFileSync(join(c.directory, 'bin/aapt'), `#!/usr/bin/env bash
+echo "package: name='dev.dshremote.dsh_remote_mobile' versionCode='${c.metadata.android_build}' versionName='${releaseVersion}'"
+`, { mode: 0o700 })
+  return c.command('bash', ['tools/mobile-release.sh', '--inside-scope'], {
+    CI: '', ANDROID_KEYSTORE_PATH: '', ANDROID_KEYSTORE_PASSWORD: '', ANDROID_KEY_ALIAS: '', ANDROID_KEY_PASSWORD: '',
+    ANDROID_SIGNING_CERT_SHA256: 'b'.repeat(64), DSH_FLUTTER_BIN: join(c.directory, 'bin/flutter'),
+    ANDROID_BUILD_TOOLS: join(c.directory, 'bin'), ...overrides,
+  })
+}
+test('local release entry loads the local certificate without manually sourcing credentials', () => fixture(c => {
+  const result = signingBuild(c)
+  assert.equal(result.status, 0, result.stderr)
+  const manifest = JSON.parse(readFileSync(join(c.output, 'release-manifest.json')))
+  assert.equal(manifest.android.certificateSha256, 'a'.repeat(64))
+  assert.ok(readFileSync(join(c.output, 'SHA256SUMS'), 'utf8').includes(`dsh-remote-android-${releaseVersion}.apk`))
+}))
+test('CI ignores local signing and fails without environment credentials', () => fixture(c => {
+  const result = signingBuild(c, { CI: 'true' })
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr, /release keystore path is required/)
+}))
+test('CI verifies its environment certificate instead of the local certificate', () => fixture(c => {
+  const env = { CI: 'true', ANDROID_KEYSTORE_PATH: '/synthetic.jks', ANDROID_KEYSTORE_PASSWORD: 'synthetic', ANDROID_KEY_ALIAS: 'fixture', ANDROID_KEY_PASSWORD: 'synthetic' }
+  assert.match(signingBuild(c, env).stderr, /certificate mismatch/)
+  const result = signingBuild(c, { ...env, ANDROID_SIGNING_CERT_SHA256: 'a'.repeat(64) })
+  assert.equal(result.status, 0, result.stderr)
 }))
 test('GitHub release offline validation does not contact the network', () => fixture(c => {
   c.assets(); const result = c.run('github-release'); assert.equal(result.status, 0, result.stderr); assert.equal(c.read().calls.length, 0)

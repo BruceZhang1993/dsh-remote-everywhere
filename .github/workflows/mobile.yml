@@ -25,6 +25,12 @@ jobs:
     steps:
       - run: apt-get update && apt-get install -y git curl unzip xz-utils ca-certificates python3 jq openjdk-21-jdk
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.47.7'
@@ -35,7 +41,7 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
       # The whole job already runs inside the 8 GiB + 4 GiB swap cgroup.
-      - run: tools/mobile-check.sh android --inside-scope
+      - run: tools/mobile-check.sh check --inside-scope
         env:
           JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
           GIT_CONFIG_COUNT: '2'
@@ -43,10 +49,35 @@ jobs:
           GIT_CONFIG_VALUE_0: ${{ github.workspace }}
           GIT_CONFIG_KEY_1: safe.directory
           GIT_CONFIG_VALUE_1: ${{ env.FLUTTER_ROOT }}
+      - name: Build and verify the signed release APK
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
+          GIT_CONFIG_COUNT: '2'
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: ${{ github.workspace }}
+          GIT_CONFIG_KEY_1: safe.directory
+          GIT_CONFIG_VALUE_1: ${{ env.FLUTTER_ROOT }}
+        run: |
+          set -euo pipefail
+          : "${KEYSTORE_BASE64:?configure repository secret ANDROID_KEYSTORE_BASE64}"
+          umask 077
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/dsh-release.jks"
+          trap 'rm -f "$ANDROID_KEYSTORE_PATH"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          unset KEYSTORE_BASE64
+          bash tools/mobile-release.sh --inside-scope
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
         with:
-          name: android-ci-debug-signed-apk
-          path: .cache/mobile/dsh-remote-release.apk
+          name: android-ci-signed-release-apk
+          path: .cache/mobile-release/*
+          if-no-files-found: error
   ios:
     needs: android
     if: github.event_name == 'workflow_dispatch' && inputs.allow_macos_build
