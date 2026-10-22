@@ -4,10 +4,15 @@ release_root="$(cd "$(dirname "$0")/.." && pwd)"
 if [[ "${1:-}" != --inside-scope ]]; then
   exec "$release_root/tools/run-limited.sh" bash "$release_root/tools/mobile-release.sh" --inside-scope
 fi
-: "${ANDROID_KEYSTORE_PATH:?release keystore path is required}"
-: "${ANDROID_KEYSTORE_PASSWORD:?release keystore password is required}"
-: "${ANDROID_KEY_ALIAS:?release key alias is required}"
-: "${ANDROID_KEY_PASSWORD:?release key password is required}"
+release_signing="$release_root/.signing/android/key.properties"
+if [[ "${CI:-}" != true && -f "$release_signing" ]]; then
+  export ANDROID_SIGNING_CERT_SHA256="$(sed -n 's/^certificateSha256=//p' "$release_signing")"
+else
+  : "${ANDROID_KEYSTORE_PATH:?release keystore path is required}"
+  : "${ANDROID_KEYSTORE_PASSWORD:?release keystore password is required}"
+  : "${ANDROID_KEY_ALIAS:?release key alias is required}"
+  : "${ANDROID_KEY_PASSWORD:?release key password is required}"
+fi
 : "${ANDROID_SIGNING_CERT_SHA256:?expected release signing certificate fingerprint is required}"
 export DSH_REQUIRE_RELEASE_SIGNING=1
 cd "$release_root"

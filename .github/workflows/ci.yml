@@ -97,3 +97,4 @@ jobs:
   mobile:
     # Test/build the actual application; replaces the duplicate generated sample APK gate.
     uses: ./.github/workflows/mobile.yml
+    secrets: inherit

@@ -1,16 +1,32 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val releaseStore = System.getenv("ANDROID_KEYSTORE_PATH")
-val releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-val releaseAlias = System.getenv("ANDROID_KEY_ALIAS")
-val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-val hasReleaseSigning = listOf(releaseStore, releaseStorePassword, releaseAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
-check(System.getenv("DSH_REQUIRE_RELEASE_SIGNING") != "1" || hasReleaseSigning) {
-    "Release signing is required; provide all four ANDROID_KEYSTORE/KEY variables."
+val localSigningFile = rootProject.file("../../../.signing/android/key.properties")
+val useLocalSigning = System.getenv("CI") != "true" && localSigningFile.isFile
+val localSigning = Properties().apply {
+    if (useLocalSigning) localSigningFile.inputStream().use { load(it) }
+}
+fun signingValue(property: String, environment: String): String? =
+    if (useLocalSigning) localSigning.getProperty(property) else System.getenv(environment)
+
+val releaseStore = signingValue("storeFile", "ANDROID_KEYSTORE_PATH")?.let {
+    if (useLocalSigning) localSigningFile.parentFile.resolve(it) else file(it)
+}
+val releaseStorePassword = signingValue("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+val releaseAlias = signingValue("keyAlias", "ANDROID_KEY_ALIAS")
+val releaseKeyPassword = signingValue("keyPassword", "ANDROID_KEY_PASSWORD")
+val hasReleaseSigning = releaseStore?.isFile == true && listOf(releaseStorePassword, releaseAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
+gradle.taskGraph.whenReady {
+    val requiresSigning = System.getenv("DSH_REQUIRE_RELEASE_SIGNING") == "1" ||
+        allTasks.any { it.project == project && it.name.contains("release", ignoreCase = true) }
+    check(!requiresSigning || hasReleaseSigning) {
+        "Release signing is required; configure .signing/android/key.properties or all four ANDROID_KEYSTORE/KEY variables."
+    }
 }
 
 android {
@@ -39,20 +55,17 @@ android {
     }
 
     signingConfigs {
-        if (hasReleaseSigning) {
-            create("distribution") {
-                storeFile = file(releaseStore!!)
-                storePassword = releaseStorePassword
-                keyAlias = releaseAlias
-                keyPassword = releaseKeyPassword
-            }
+        create("distribution") {
+            storeFile = releaseStore
+            storePassword = releaseStorePassword
+            keyAlias = releaseAlias
+            keyPassword = releaseKeyPassword
         }
     }
 
     buildTypes {
         release {
-            // Local CI artifacts may use debug signing; distribution explicitly requires the release key.
-            signingConfig = signingConfigs.getByName(if (hasReleaseSigning) "distribution" else "debug")
+            signingConfig = signingConfigs.getByName("distribution")
         }
     }
 }

@@ -28,7 +28,7 @@ tools/mobile-check.sh android
 Android 构建需要 JDK 17 或更新版本；本机实测使用 `JAVA_HOME=/usr/lib/jvm/java-21-openjdk` 和 `ANDROID_HOME=/home/bruce/Android/Sdk`，系统默认 Java 8 不可作为 Gradle 工具链。Gradle 使用 2 GiB heap、1 GiB metaspace、最多两个 worker，并关闭持久 daemon，避免超过整个构建树的 8 GiB 上限。
 
 脚本将整个 pub get、analyze、test、build 树包在 `tools/run-limited.sh` 的用户 systemd scope 中：8 GiB 内存、4 GiB swap；用户 manager 不可用就停止。重构建须串行。
-Android CI APK 位于 `.cache/mobile/dsh-remote-release.apk`，未提供发布签名变量时使用调试签名，仅供本地验收。正式发布入口为 `bash tools/mobile-release.sh`，强制要求发布密钥和证书指纹，输出 `.cache/mobile-release/`；版本与签名 Secrets、GitHub Release 配置见 [CI 与版本发布](../../docs/ci-release.md)。
+Android 构建统一使用正式签名，缺少签名时失败。本机优先读取仓库根目录 `.signing/android/key.properties`（Git 已忽略），无需手动加载环境变量；没有本地文件时读取 `ANDROID_KEYSTORE_PATH` 等签名环境变量。`tools/mobile-check.sh android` 会检查证书、包名/版本、v2 签名和对齐，并复制 APK 到 `.cache/mobile/dsh-remote-release.apk`。`bash tools/mobile-release.sh` 仅构建和验证正式 APK，完整产物位于 `.cache/mobile-release/`；CI 从 GitHub Secrets 还原临时 keystore，上传 `android-ci-signed-release-apk`，不生成 debug 签名包。配置见 [CI 与版本发布](../../docs/ci-release.md)。
 
 macOS / Xcode 未签名构建入口（Linux 无法执行）：
 

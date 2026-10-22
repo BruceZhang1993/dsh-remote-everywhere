@@ -24,7 +24,7 @@ flowchart TD
 
 所有版本由 `tools/release-config.mjs` 的 `releaseVersion` 决定；源码 workspace 包保持开发版本，候选构建时统一写入发布版本和精确内部依赖。`tools/release-version.mjs --set VERSION` 同步移动端 `pubspec.yaml` 并递增 Android versionCode，拒绝版本回退、非标准版本、脏工作区。支持 `0.2.0-dev.1`、`0.2.0-rc.1` 和 `0.2.0` 这类版本。稳定版才允许进入 npm `latest`，并在修改任意包标签前检查全部当前 `latest`，防止回退。
 
-首次合并这套 CI 配置不会自动发布。后续到 GitHub Actions 运行 **Prepare and tag a version**，选择 `master` 并输入更高版本；合并产生的版本 PR 即代表启动该版本发布。也可在经过审查的提交创建与配置一致的 `vVERSION` tag；手工修改版本时同样必须递增 Android versionCode，自动打 tag 前会比较前后构建号。版本 PR 不自动合并。普通功能 PR、分支 push 和定时 fuzz 不接触发布凭据。
+首次合并这套 CI 配置不会自动发布。后续到 GitHub Actions 运行 **Prepare and tag a version**，选择 `master` 并输入更高版本；合并产生的版本 PR 即代表启动该版本发布。也可在经过审查的提交创建与配置一致的 `vVERSION` tag；手工修改版本时同样必须递增 Android versionCode，自动打 tag 前会比较前后构建号。版本 PR 不自动合并。普通功能 PR 和分支 push 的 Android 构建使用仓库级签名 Secrets；Fork 和 Dependabot PR 只检查和测试，不构建 APK。定时 fuzz 不使用签名凭据。
 
 GitHub 默认 token 创建的 PR/tag 不会再触发 push/PR 工作流，因此版本流显式调度 `ci.yml` 和 `release.yml`。这里的 CI 与发布针对确切 tag 提交重新验证，不复用另一个分支的产物。
 
@@ -54,7 +54,7 @@ GitHub 默认 token 创建的 PR/tag 不会再触发 push/PR 工作流，因此�
 
 ### Android 发布签名
 
-在 **mobile-signing environment** 设置：
+在仓库 **Settings → Secrets and variables → Actions** 设置下表内容，供普通 CI 使用；`mobile-signing` environment 保留同一份配置，供 tag 发布使用。可复用工作流的调用链通过 `secrets: inherit` 显式传递 Secrets。
 
 | 类型 | 名称 | 内容 |
 |---|---|---|
@@ -66,7 +66,7 @@ GitHub 默认 token 创建的 PR/tag 不会再触发 push/PR 工作流，因此�
 
 请长期备份同一份发布密钥。更新 APK 必须保留 applicationId 和证书、递增 versionCode；先前 debug 签名安装通常需要卸载后才能改装正式证书包。签名方式遵循 [Flutter Android 发布文档](https://docs.flutter.dev/deployment/android)。
 
-流程只在临时目录解码 keystore，退出时删除，不上传密钥。缺少签名、使用 Android Debug 证书、指纹不一致、包名/版本不一致、APK v2 签名或 zipalign 校验失败都会停止。普通 `Mobile checks` 仍可生成 **debug 签名的 CI 测试产物**，其名称与正式发布产物区分。
+CI 只在临时目录解码 keystore，退出时删除，不上传密钥。缺少签名、使用 Android Debug 证书、指纹不一致、包名/版本不一致、APK v2 签名或 zipalign 校验失败都会停止。普通 `Mobile checks` 与 tag 发布均构建正式签名的 release APK，不再回退到 debug 签名。
 
 ### 本机签名与 GitHub 配置（2026-10-16）
 
@@ -74,19 +74,23 @@ GitHub 默认 token 创建的 PR/tag 不会再触发 push/PR 工作流，因此�
 
 - `dsh-remote-release.jks`：RSA-3072 / JKS，alias 为 `dsh-remote-release`，证书有效期至 2054-03-03。
 - `signing.env`：本地签名所需环境变量，包含随机生成的独立 store/key 密码；不写入文档或 Git。
+- `key.properties`：本地构建自动读取的签名配置，包含 `storeFile`、`storePassword`、`keyAlias`、`keyPassword`、`certificateSha256`；`storeFile` 相对于该文件所在目录。优先于环境变量，CI（`CI=true`）忽略此文件并读取 Secrets 提供的环境变量。
 - `certificate.der`、`signing-info.json`：公有证书及身份信息。证书 SHA-256 为 `eb1947fa347d7363d27fc04809d69da753212f422900368ac9c05a5cd7f76a95`。
 - `.signing/` 目录权限为 `0700`，文件为 `0600`；Git 忽略整个目录及 `*.jks` / `*.keystore`。
 
 GitHub `mobile-signing` environment 已配置上述四个 Secrets 和 `ANDROID_SIGNING_CERT_SHA256` 变量，读取名称及公有指纹核对通过；该环境仅允许 `v*` tag。Secrets 不可回读，本地私钥访问及 CSR 签名校验已通过。生成并配置签名时未触发构建或发布；后续正式证书本地 APK 验证见[发布链路检查](release-preflight.md)。
 
-本机使用现有发布入口时，从仓库根目录加载：
+本机已配置 `key.properties` 时，从仓库根目录直接运行：
 
 ```bash
-source .signing/android/signing.env
 bash tools/mobile-release.sh
+# 或同时运行 Flutter 检查和测试
+tools/mobile-check.sh android
 ```
 
 请把整个 `.signing/android/` 目录加密备份到仓库之外，密码文件应一并备份。后续升级沿用这份签名；删除 checkout 前先备份，GitHub Secrets 无法用于取回丢失的私钥和密码。
+
+2026-10-22 已沿用上述证书补齐本地 `key.properties` 和仓库级四个 Secrets、证书指纹变量；没有轮换签名密钥。直接使用 Flutter/Gradle 构建 release 时也读取该本地文件，release 配置只绑定正式签名，签名缺失时构建失败。
 
 ## 工作流与验收
 
