@@ -14,13 +14,12 @@ void main() {
   // This suite connects to an isolated loopback host instead of mocking HTTP.
   HttpOverrides.global = null;
 
-  for (final mode in ['large', 'legacy', 'sessionOnly', 'delayed']) {
+  for (final mode in ['large', 'legacy', 'sessionOnly', 'delayed', 'pairing']) {
     test(
       'mobile loads complete $mode listing and search from Node host',
       () async {
-        final controller = MobileController(
-          IdentityVault(store: FakeKeyValueStore()),
-        );
+        final store = FakeKeyValueStore();
+        final controller = MobileController(IdentityVault(store: store));
         await controller.initialize();
         final host = await Process.start('node', [
           File('../../tools/fixtures/listing-host.mjs').absolute.path,
@@ -51,7 +50,24 @@ void main() {
           publicKey: key,
           name: 'Node fixture',
           caps: (config['caps'] as List).cast<String>(),
+          endpoints: List.generate(
+            mode == 'pairing' ? 0 : 8,
+            (index) => 'wss://old$index.example.com/remote/ws',
+          ),
         );
+        if (mode == 'pairing') {
+          await controller.pair(
+            jsonEncode(config['qr']),
+            (payload, sas) async => true,
+          );
+          expect((await controller.vault.loadDevices()).single.endpoints, [
+            config['endpoint'],
+          ]);
+          await controller.disconnect();
+        } else {
+          await controller.vault.saveDevices([device]);
+          controller.devices = [device];
+        }
         final ready = Completer<void>();
         void onConnected() {
           if (controller.connected && !ready.isCompleted) ready.complete();
@@ -79,6 +95,20 @@ void main() {
         controller.removeListener(onConnected);
         expect(controller.connected, isTrue);
         expect(controller.error, isNull);
+        final saved = (await controller.vault.loadDevices()).single;
+        expect(saved.endpoints, [
+          config['endpoint'],
+          ...device.endpoints.take(7),
+        ]);
+        expect(
+          base64Url.decode(saved.publicKey),
+          base64Url.decode(device.publicKey),
+        );
+        await controller.connect(saved, config['endpoint'] as String);
+        expect(
+          (await controller.vault.loadDevices()).single.endpoints,
+          saved.endpoints,
+        );
         expect(controller.sessions, hasLength(mode == 'large' ? 120 : 1));
         expect(
           controller.sessions.last['sessionId'],
@@ -122,6 +152,32 @@ void main() {
           ),
           isTrue,
         );
+        await controller.connect(
+          saved,
+          'https://invalid.example.com/remote/ws',
+        );
+        expect(controller.connected, isFalse);
+        expect(
+          (await controller.vault.loadDevices()).single.endpoints,
+          saved.endpoints,
+        );
+        if (mode == 'pairing') {
+          final restored = MobileController(IdentityVault(store: store));
+          try {
+            await restored.initialize();
+            final target = restored.devices.single;
+            await restored.connect(
+              target,
+              restored.endpoints[target.deviceId]!,
+            );
+            expect(restored.connected, isTrue);
+            expect(restored.error, isNull);
+            expect(restored.sessions, hasLength(1));
+          } finally {
+            await restored.disconnect();
+            restored.dispose();
+          }
+        }
       },
     );
   }

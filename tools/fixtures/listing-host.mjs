@@ -9,7 +9,7 @@ const directory = mkdtempSync(join(tmpdir(), 'dsh-mobile-listing-'))
 const mode = process.argv[3]
 const legacy = mode === 'legacy'
 const caps = mode === 'sessionOnly' ? ['session'] : ['session', 'stream']
-const items = Array.from({ length: legacy || caps.length === 1 ? 1 : 120 }, (_, i) => ({ sessionId: `s-${i}`, title: '中文标题'.repeat(180) }))
+const items = Array.from({ length: legacy || caps.length === 1 || mode === 'pairing' ? 1 : 120 }, (_, i) => ({ sessionId: `s-${i}`, title: '中文标题'.repeat(180) }))
 const calls = []
 const controller = Object.fromEntries(['list', 'search', 'create', 'fork', 'rename', 'prompt', 'cancel', 'updateQueue', 'attachment', 'projections', 'follow', 'page', 'control'].map(method => [method, async (params, signal) => {
   calls.push({ method, params })
@@ -33,7 +33,12 @@ const ctx = {
   } : null,
 }
 const runtime = await new RemoteRuntime(ctx, { directory }).start()
-runtime.store.grant(Buffer.from(process.argv[2], 'base64url'), 'mobile fixture', caps)
+if (mode !== 'pairing') runtime.store.grant(Buffer.from(process.argv[2], 'base64url'), 'mobile fixture', caps)
+let qr
+if (mode === 'pairing') {
+  qr = runtime.pairing.begin(runtime.endpoint, caps)
+  runtime.pairing.on('pending', pending => runtime.pairing.confirm(pending.sas))
+}
 if (legacy) {
   const attach = runtime.attach.bind(runtime)
   runtime.attach = connection => {
@@ -48,7 +53,7 @@ if (legacy) {
     }
   }
 }
-process.stdout.write(`${JSON.stringify({ endpoint: runtime.endpoint, publicKey: Buffer.from(runtime.store.keyPair.publicKey).toString('base64url'), caps })}\n`)
+process.stdout.write(`${JSON.stringify({ endpoint: runtime.endpoint, publicKey: Buffer.from(runtime.store.keyPair.publicKey).toString('base64url'), caps, qr })}\n`)
 process.stdin.resume()
 await new Promise(resolve => process.stdin.once('end', resolve))
 await runtime.close()

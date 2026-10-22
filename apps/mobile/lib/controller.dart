@@ -39,6 +39,7 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
   bool initialized = false, busy = false, _disposed = false, _foreground = true;
   bool _initializing = false;
   bool _manualStopped = true;
+  Future<void> _deviceWrite = Future.value();
   RemoteConnection? _connection;
   RemoteCancellation? _connecting, _sessionCancellation, _pairing;
   StreamSubscription<Map<String, dynamic>>? _events, _sessionEvents, _control;
@@ -73,6 +74,11 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
       devices = trusted;
+      for (final target in trusted) {
+        if (target.endpoints.isNotEmpty) {
+          endpoints[target.deviceId] = target.endpoints.first;
+        }
+      }
       initialized = true;
       status = '选择设备并连接';
     } catch (failure, stack) {
@@ -174,14 +180,23 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
         publicKey: base64Url.encode(paired.publicKey),
         name: paired.name,
         caps: paired.caps,
+        endpoints: [
+          paired.endpoint,
+          ...devices
+              .where((item) => item.deviceId == paired.deviceId)
+              .expand((item) => item.endpoints)
+              .where((endpoint) => endpoint != paired.endpoint),
+        ].take(TrustedDevice.maxEndpoints).toList(),
       );
-      final next = [
-        ...devices.where((item) => item.deviceId != trusted.deviceId),
-        trusted,
-      ];
-      await vault.saveDevices(next);
+      await _updateDevices(
+        (devices) => current()
+            ? [
+                ...devices.where((item) => item.deviceId != trusted.deviceId),
+                trusted,
+              ]
+            : devices,
+      );
       if (!current()) return;
-      devices = next;
       endpoints[trusted.deviceId] = paired.endpoint;
       _notify();
       await connect(trusted, paired.endpoint);
@@ -192,33 +207,57 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
 
   void cancelPairing() => _pairing?.cancel();
 
+  // Address recovery and user device edits share one storage writer.
+  Future<void> _updateDevices(
+    List<TrustedDevice> Function(List<TrustedDevice>) update,
+  ) {
+    final writing = _deviceWrite.then((_) async {
+      if (_disposed) return;
+      final next = update(devices);
+      if (identical(next, devices)) return;
+      await vault.saveDevices(next);
+      if (_disposed) return;
+      devices = next;
+      for (final target in next) {
+        if (device?.deviceId == target.deviceId) device = target;
+      }
+    });
+    _deviceWrite = writing.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return writing;
+  }
+
   Future<void> renameDevice(TrustedDevice target, String name) async {
     if (name.trim().isEmpty || name.length > 80) {
       throw const FormatException('名称需为 1–80 个字符');
     }
-    final replacement = TrustedDevice(
-      deviceId: target.deviceId,
-      publicKey: target.publicKey,
-      name: name.trim(),
-      caps: target.caps,
+    await _updateDevices(
+      (devices) => devices
+          .map(
+            (item) => item.deviceId == target.deviceId
+                ? TrustedDevice(
+                    deviceId: item.deviceId,
+                    publicKey: item.publicKey,
+                    name: name.trim(),
+                    caps: item.caps,
+                    endpoints: item.endpoints,
+                  )
+                : item,
+          )
+          .toList(),
     );
-    final next = devices
-        .map((item) => item.deviceId == target.deviceId ? replacement : item)
-        .toList();
-    await vault.saveDevices(next);
     if (_disposed) return;
-    devices = next;
-    if (device?.deviceId == target.deviceId) device = replacement;
     _notify();
   }
 
   Future<void> forget(TrustedDevice target) async {
-    final next = devices
-        .where((item) => item.deviceId != target.deviceId)
-        .toList();
-    await vault.saveDevices(next);
+    await _updateDevices(
+      (devices) =>
+          devices.where((item) => item.deviceId != target.deviceId).toList(),
+    );
     if (_disposed) return;
-    devices = next;
     endpoints.remove(target.deviceId);
     if (device?.deviceId == target.deviceId) {
       device = null;
@@ -328,6 +367,30 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
     await _establish(generation);
   }
 
+  Future<void> _rememberEndpoint(TrustedDevice target, String endpoint) =>
+      _updateDevices((devices) {
+        final index = devices.indexWhere(
+          (item) => item.deviceId == target.deviceId,
+        );
+        if (index < 0) return devices;
+        final previous = devices[index];
+        if (previous.endpoints.isNotEmpty &&
+            previous.endpoints.first == endpoint) {
+          return devices;
+        }
+        final replacement = TrustedDevice(
+          deviceId: previous.deviceId,
+          publicKey: previous.publicKey,
+          name: previous.name,
+          caps: previous.caps,
+          endpoints: [
+            endpoint,
+            ...previous.endpoints.where((item) => item != endpoint),
+          ].take(TrustedDevice.maxEndpoints).toList(),
+        );
+        return [...devices]..[index] = replacement;
+      });
+
   Future<void> _establish(int generation) async {
     final target = device;
     if (_disposed ||
@@ -343,6 +406,7 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
     status = _attempts == 0 ? '连接中' : '重连中（$_attempts/8）';
     _notify();
     final cancellation = RemoteCancellation();
+    final endpoint = endpoints[target.deviceId]!;
     _connecting = cancellation;
     RemoteConnection? opened;
     bool failed = false;
@@ -385,7 +449,7 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
 
     try {
       final connection = await RemoteConnection.connect(
-        endpoints[target.deviceId]!,
+        endpoint,
         identity: identity!,
         peerPublicKey: base64Url.decode(target.publicKey),
         caps: target.caps,
@@ -401,6 +465,8 @@ class MobileController extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
       _connection = connection;
+      await _rememberEndpoint(target, endpoint);
+      _checkOwner(connection, generation);
       status = '已连接';
       error = null;
       _events = connection.events.listen(

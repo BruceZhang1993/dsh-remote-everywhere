@@ -77,6 +77,47 @@ void main() {
     );
   });
 
+  test(
+    'connection history survives cold start and old records still load',
+    () async {
+      final store = FakeKeyValueStore();
+      final vault = IdentityVault(store: store);
+      final legacy = TrustedDevice.fromJson(_trustedRecord());
+      expect(legacy.endpoints, isEmpty);
+      final record = _trustedRecord()
+        ..['endpoints'] = [
+          'wss://192.168.1.20:47311/remote/ws',
+          'wss://desktop.example.com/remote/ws',
+        ];
+      await vault.saveDevices([TrustedDevice.fromJson(record)]);
+      final restored = await IdentityVault(store: store).loadDevices();
+      expect(restored.single.endpoints, record['endpoints']);
+      expect(restored.single.publicKey, legacy.publicKey);
+    },
+  );
+
+  test('connection history is bounded and excludes pairing secrets', () {
+    for (final endpoints in [
+      'wss://host/remote/ws',
+      [42],
+      [''],
+      ['https://host/remote/ws'],
+      ['wss:///remote/ws'],
+      ['wss://user:password@host/remote/ws'],
+      ['wss://host/remote/ws#fragment'],
+      ['wss://host/remote/ws?sid=pairing-secret'],
+      ['wss://host/${List.filled(2048, 'a').join()}'],
+      ['wss://host/remote/ws', 'wss://host/remote/ws'],
+      List.generate(9, (index) => 'wss://host$index/remote/ws'),
+    ]) {
+      expect(
+        () =>
+            TrustedDevice.fromJson(_trustedRecord()..['endpoints'] = endpoints),
+        throwsFormatException,
+      );
+    }
+  });
+
   test('mismatched device id is rejected on save and load', () async {
     final store = FakeKeyValueStore();
     final vault = IdentityVault(store: store);

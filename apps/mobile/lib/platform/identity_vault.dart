@@ -43,25 +43,30 @@ class FakeKeyValueStore implements KeyValueStore {
   }
 }
 
-/// Trusted identity only. Tunnel addresses and pairing secrets are ephemeral.
+/// Pinned identity and recent successful endpoints. Pairing secrets stay ephemeral.
 class TrustedDevice {
   TrustedDevice({
     required this.deviceId,
     required this.publicKey,
     required this.name,
     required List<String> caps,
-  }) : caps = List.unmodifiable(caps);
+    List<String> endpoints = const [],
+  }) : caps = List.unmodifiable(caps),
+       endpoints = List.unmodifiable(endpoints);
 
   final String deviceId;
   final String publicKey;
   final String name;
   final List<String> caps;
+  static const maxEndpoints = 8;
+  final List<String> endpoints;
 
   Map<String, Object> toJson() => {
     'deviceId': deviceId,
     'publicKey': publicKey,
     'name': name,
     'caps': caps,
+    if (endpoints.isNotEmpty) 'endpoints': endpoints,
   };
 
   factory TrustedDevice.fromJson(Object? value) {
@@ -77,6 +82,13 @@ class TrustedDevice {
     final key = base64Url.decode(value['publicKey'] as String);
     final name = value['name'] as String;
     final caps = (value['caps'] as List).cast<String>();
+    final endpoints = value['endpoints'] ?? [];
+    if (endpoints is! List ||
+        endpoints.length > maxEndpoints ||
+        endpoints.toSet().length != endpoints.length ||
+        endpoints.any((endpoint) => !_validEndpoint(endpoint))) {
+      throw const FormatException('设备历史连接地址无效。');
+    }
     const allowedCaps = {
       'session',
       'stream',
@@ -101,7 +113,19 @@ class TrustedDevice {
       publicKey: base64Url.encode(key),
       name: name,
       caps: caps,
+      endpoints: endpoints.cast<String>(),
     );
+  }
+
+  static bool _validEndpoint(Object? value) {
+    if (value is! String || value.length > 2048) return false;
+    final uri = Uri.tryParse(value);
+    return uri != null &&
+        {'ws', 'wss'}.contains(uri.scheme) &&
+        uri.host.isNotEmpty &&
+        uri.userInfo.isEmpty &&
+        !uri.hasFragment &&
+        !uri.queryParameters.containsKey('sid');
   }
 }
 
