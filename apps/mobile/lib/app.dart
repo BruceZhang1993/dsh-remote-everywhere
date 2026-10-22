@@ -192,9 +192,41 @@ class _RemoteHomeState extends State<_RemoteHome> {
   }
 
   Future<void> _connect(TrustedDevice target) async {
+    if (target.endpoints.isNotEmpty) {
+      await c.action(() => c.connect(target, target.endpoints.first));
+      return;
+    }
+    await _editEndpoint(target);
+  }
+
+  Future<void> _editEndpoint(TrustedDevice target) async {
+    if (target.endpoints.isNotEmpty) {
+      final selected = await showDialog<String>(
+        context: context,
+        builder: (context) => SimpleDialog(
+          title: Text('连接地址 · ${target.name}'),
+          children: [
+            for (final endpoint in target.endpoints)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, endpoint),
+                child: Text(endpoint),
+              ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, ''),
+              child: const Text('输入新地址'),
+            ),
+          ],
+        ),
+      );
+      if (selected == null || !mounted) return;
+      if (selected.isNotEmpty) {
+        await c.action(() => c.connect(target, selected));
+        return;
+      }
+    }
     final endpoint = await _text(
       '连接 ${target.name}',
-      value: c.endpoints[target.deviceId] ?? '',
+      value: target.endpoints.firstOrNull ?? '',
       hint: 'wss://…/remote/ws',
     );
     if (endpoint != null && endpoint.trim().isNotEmpty) {
@@ -611,7 +643,9 @@ class _RemoteHomeState extends State<_RemoteHome> {
             isThreeLine: true,
             onTap: !c.busy ? () => _connect(target) : null,
             trailing: PopupMenuButton<String>(
+              enabled: !c.busy,
               onSelected: (value) async {
+                if (value == 'endpoint') await _editEndpoint(target);
                 if (value == 'rename') {
                   final name = await _text('设备名称', value: target.name);
                   if (name != null) _do(() => c.renameDevice(target, name));
@@ -638,6 +672,7 @@ class _RemoteHomeState extends State<_RemoteHome> {
                 }
               },
               itemBuilder: (_) => const [
+                PopupMenuItem(value: 'endpoint', child: Text('连接地址')),
                 PopupMenuItem(value: 'rename', child: Text('改名')),
                 PopupMenuItem(value: 'forget', child: Text('移除本机记录')),
               ],

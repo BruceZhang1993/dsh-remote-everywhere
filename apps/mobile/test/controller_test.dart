@@ -23,7 +23,88 @@ class DelayedIdentityStore implements KeyValueStore {
   Future<void> write(String key, String value) async {}
 }
 
+class _DelayedDeviceStore extends FakeKeyValueStore {
+  Completer<void>? release;
+  final writing = Completer<void>();
+  int pendingWrites = 0;
+
+  @override
+  Future<void> write(String key, String value) async {
+    final wait = release;
+    if (key == 'trusted-devices-v1' && wait != null) {
+      pendingWrites++;
+      if (!writing.isCompleted) writing.complete();
+      await wait.future;
+      pendingWrites--;
+    }
+    await super.write(key, value);
+  }
+}
+
 void main() {
+  testWidgets('concurrent device writes cannot restore a forgotten device', (
+    tester,
+  ) async {
+    final store = _DelayedDeviceStore();
+    final vault = IdentityVault(store: store);
+    final identity = await vault.loadIdentity();
+    final target = TrustedDevice(
+      deviceId: identity.deviceId,
+      publicKey: base64Url.encode(identity.publicKey),
+      name: 'Desktop',
+      caps: ['session'],
+      endpoints: ['wss://desktop.example.com/remote/ws'],
+    );
+    await vault.saveDevices([target]);
+    final controller = MobileController(vault);
+    await controller.initialize();
+    store.release = Completer<void>();
+    final renaming = controller.renameDevice(target, 'Renamed');
+    await store.writing.future;
+    final forgetting = controller.forget(target);
+    await tester.pump();
+    expect(store.pendingWrites, 1);
+    store.release!.complete();
+    await Future.wait([renaming, forgetting]);
+    expect(controller.devices, isEmpty);
+    expect(await vault.loadDevices(), isEmpty);
+    expect(controller.endpoints, isEmpty);
+    controller.dispose();
+  });
+
+  testWidgets(
+    'cold start restores addresses and rename preserves history while forget removes it',
+    (tester) async {
+      final store = FakeKeyValueStore();
+      final vault = IdentityVault(store: store);
+      final identity = await vault.loadIdentity();
+      final history = [
+        'wss://192.168.1.20/remote/ws',
+        'wss://desktop.example.com/remote/ws',
+      ];
+      await vault.saveDevices([
+        TrustedDevice(
+          deviceId: identity.deviceId,
+          publicKey: base64Url.encode(identity.publicKey),
+          name: 'Desktop',
+          caps: ['session'],
+          endpoints: history,
+        ),
+      ]);
+      final controller = MobileController(vault);
+      await controller.initialize();
+      expect(controller.endpoints[identity.deviceId], history.first);
+      await controller.renameDevice(controller.devices.single, 'Renamed');
+      final restored = await IdentityVault(store: store).loadDevices();
+      expect(restored.single.name, 'Renamed');
+      expect(restored.single.endpoints, history);
+      await controller.forget(controller.devices.single);
+      expect(await vault.loadDevices(), isEmpty);
+      expect(controller.endpoints, isEmpty);
+      controller.dispose();
+    },
+  );
+
   testWidgets('late secure identity is wiped after controller disposal', (
     tester,
   ) async {
